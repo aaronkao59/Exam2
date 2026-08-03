@@ -2,462 +2,647 @@ import streamlit as st
 import random
 import json
 import os
+import re
+import io
+from gtts import gTTS
 
-APP_VERSION = "v3.1.6 (Pure Light Coffee UI Edition)"
+# 🚀 全域系統版本號
+APP_VERSION = "v2.3.0 (Build 20260803 - Cute Princess Edition 👑)"
 
-st.set_page_config(page_title="中高級認證", page_icon="🎓", layout="wide", initial_sidebar_state="collapsed")
+# ==========================================
+# 🛡️ 防腐層：保留指定的原始結構與函數
+# ==========================================
+VOCABULARY = []
+SENTENCES = []
 
-# 透過 CSS 變數實作絕對純白與咖啡色字體映射，並鎖定為 Light 模式為主
-st.markdown("""
+def init_quiz(): 
+    pass
+
+def play_audio(): 
+    pass
+
+def show_learning_mode(): 
+    pass
+
+def show_quiz_mode(): 
+    pass
+
+def show_debug_info(): 
+    pass
+
+# 原始聽力題庫 (15題標準數據庫，完全保留)
+QUIZ_DATA = [
+    {"id": 1, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-01.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["riyar", "'alo", "fanaw", "sa'owac"], "correct_text": "riyar"},
+    {"id": 2, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-02.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["korkor", "rohayan", "romakat", "rotarot"], "correct_text": "romakat"},
+    {"id": 3, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-03.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["hadhad", "hakhak", "hawan", "hafay"], "correct_text": "hafay"},
+    {"id": 4, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-04.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["tefo'", "'okoy", "tafokod", "tafolod"], "correct_text": "tafokod"},
+    {"id": 5, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-05.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["fakar", "tayhi", "pitaw", "tarakar"], "correct_text": "pitaw"},
+    {"id": 6, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-06.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["sariri'", "riri'", "siri", "riyar"], "correct_text": "siri"},
+    {"id": 7, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-07.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["koleto", "lokot", "kewaw", "kakorot"], "correct_text": "koleto"},
+    {"id": 8, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-08.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["siwoy", "kodasing", "konga", "damay"], "correct_text": "konga"},
+    {"id": 9, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-09.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["mali'", "tikami", "tilifi", "pawli"], "correct_text": "tilifi"},
+    {"id": 10, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-10.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["picakay", "pitangtang", "picaliw", "pafeli'"], "correct_text": "picakay"},
+    {"id": 11, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-11.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["'olaw", "'alo", "fao", "tao"], "correct_text": "tao"},
+    {"id": 12, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-12.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["rorang", "kolong", "lotong", "ekong"], "correct_text": "lotong"},
+    {"id": 13, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-13.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["Halitamako", "Haliradiw", "Haliepah", "Hali'ecaw"], "correct_text": "Haliepah"},
+    {"id": 14, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-14.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["dafak", "a'ayad", "dadaya", "kamaya"], "correct_text": "dadaya"},
+    {"id": 15, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-15.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["sioy", "simal", "sinafel", "simico"], "correct_text": "sinafel"}
+]
+
+# ==========================================
+# 🎵 新增功能：南島語系動態發音引擎 (TTS)
+# ==========================================
+def play_tts(text):
+    """
+    在上傳實體聲音檔之前，利用印尼語(id)近似南島語系發音規則，
+    自動萃取題幹中的阿美語並進行動態發音。
+    """
+    match = re.search(r'「(.*?)」', text)
+    if match:
+        target_text = match.group(1)
+    else:
+        target_text = re.sub(r'請問.*?中文意思是什麼|的阿美語是哪一個|聆聽音檔.*?|題目：|阿美語：|中文：.*', '', text)
+        target_text = re.sub(r'[\u4e00-\u9fa5]', '', target_text) 
+        target_text = re.sub(r'^\d+[\.、]\s*', '', target_text) 
+    
+    target_text = target_text.strip()
+    if not target_text:
+        target_text = text 
+        
+    try:
+        tts = gTTS(text=target_text, lang='id')
+        fp = io.BytesIO()
+        tts.write_to_fp(fp)
+        st.audio(fp.getvalue(), format="audio/mp3")
+    except Exception as e:
+        st.error("🥺 魔法語音小精靈迷路了，請確認環境是否支援 gTTS 或檢查網路連線喔！")
+
+# ==========================================
+# 🧠 動態解析引擎：跨行讀取與穩定分割版
+# ==========================================
+def load_question_bank():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    cwd_dir = os.getcwd()
+
+    db = {
+        "聽音選詞": [], "對話理解": [], "段落朗讀": [], "情境問答": [],
+        "看圖表達": [], "詞彙語意": [], "語言結構": [], "句子聽寫": [], "問答": []
+    }
+    
+    scanned_files = []
+    for d in [base_dir, cwd_dir]:
+        if not os.path.exists(d): continue
+        try:
+            for f in os.listdir(d):
+                if f.lower().endswith(".txt") and f.lower() not in ["app.txt", "requirements.txt", "提示詞.txt"]:
+                    scanned_files.append(os.path.join(d, f))
+        except:
+            pass
+
+    target_content = ""
+    file_loaded = False
+    encodings_to_try = ["utf-8", "utf-8-sig", "big5", "cp950"]
+
+    for filepath in set(scanned_files):
+        for enc in encodings_to_try:
+            try:
+                with open(filepath, "r", encoding=enc) as f:
+                    text_data = f.read()
+                    if "聽音選詞" in text_data and "對話理解" in text_data:
+                        target_content = text_data
+                        file_loaded = True
+                        break
+            except:
+                continue
+        if file_loaded:
+            break
+
+    if not file_loaded:
+        return db
+
+    current_section = None
+    current_question = []
+
+    def save_question():
+        if current_section and current_question:
+            q_text = " ".join(current_question).strip()
+            if re.match(r'^\d+[\.、]', q_text):
+                db[current_section].append(q_text)
+            current_question.clear()
+
+    for line in target_content.split("\n"):
+        line = line.strip()
+        if not line:
+            save_question()
+            continue
+            
+        if "一、選擇題（聽音選詞）" in line: save_question(); current_section = "聽音選詞"
+        elif "二、選擇題（對話理解）" in line: save_question(); current_section = "對話理解"
+        elif "三、段落朗讀" in line: save_question(); current_section = "段落朗讀"
+        elif "四、情境問答" in line: save_question(); current_section = "情境問答"
+        elif "五、看圖表達" in line: save_question(); current_section = "看圖表達"
+        elif "六、選擇題（詞彙語意）" in line: save_question(); current_section = "詞彙語意"
+        elif "七、選擇題（語言結構）" in line: save_question(); current_section = "語言結構"
+        elif "八、句子聽寫" in line: save_question(); current_section = "句子聽寫"
+        elif "九、問答" in line: save_question(); current_section = "問答"
+        
+        elif re.match(r'^\d+[\.、]', line):
+            save_question()
+            current_question.append(line)
+        else:
+            if current_question:
+                current_question.append(line)
+                
+    save_question() 
+            
+    return db
+
+# ==========================================
+# 🎨 終極 UI 渲染邏輯 (結合動態 TTS 發音按鈕)
+# ==========================================
+def render_mcq(line, prefix):
+    """渲染選擇題 (新增動態語音按鈕，在上傳音檔前可作為發音輔助)"""
+    try:
+        if "(A)" not in line:
+            st.info(line)
+            return
+
+        parts = line.split("(A)", 1)
+        q_part = parts[0].strip()
+        rest = "(A)" + parts[1]
+        
+        opts_str = rest
+        ans_str = ""
+        ana_str = ""
+        
+        if "答案：" in rest:
+            ans_parts = rest.split("答案：", 1)
+            opts_str = ans_parts[0].strip()
+            ans_ana = ans_parts[1]
+            
+            if "分析：" in ans_ana:
+                final_parts = ans_ana.split("分析：", 1)
+                ans_str = final_parts[0].strip("。 ")
+                ana_str = final_parts[1].strip()
+            else:
+                ans_str = ans_ana.strip("。 ")
+
+        is_listening = "聽音選詞" in prefix or "對話理解" in prefix
+        col_q, col_btn = st.columns([4, 1.5])
+        
+        with col_q:
+            if is_listening:
+                if st.toggle("✨ 施展魔法顯示題目", key=f"t_show_q_{prefix}"):
+                    st.markdown(f"**{q_part}**")
+                else:
+                    st.markdown("**[題目隱藏中，請點擊右方播放魔法語音 🎶]**")
+            else:
+                st.markdown(f"**{q_part}**")
+                
+        with col_btn:
+            if st.button("🎵 播放語音", key=f"tts_btn_{prefix}"):
+                play_tts(q_part)
+        
+        opts = []
+        for tag in ["(A)", "(B)", "(C)", "(D)"]:
+            if tag in opts_str:
+                opt_text = opts_str.split(tag, 1)[1]
+                for next_tag in ["(B)", "(C)", "(D)"]:
+                    if next_tag > tag and next_tag in opt_text:
+                        opt_text = opt_text.split(next_tag, 1)[0]
+                opts.append(tag + " " + opt_text.strip())
+
+        user_ans = st.radio("🌸 請選擇你的答案：", opts, index=None, key=prefix)
+        
+        if st.toggle("💖 偷看皇家解答與分析", key=f"t_ans_{prefix}"):
+            if ans_str:
+                msg = f"**👑 正確答案：** {ans_str}"
+                if ana_str: msg += f"\n\n**🎀 魔法解析：** {ana_str}"
+                st.success(msg)
+            else:
+                st.warning("🏰 這裡似乎沒有標準答案呢。")
+        elif user_ans and ans_str:
+            if ans_str in user_ans:
+                st.success(f"✨ 太棒了，公主！完全正確！" + (f"🎀 解析：{ana_str}" if ana_str else ""))
+            else:
+                st.error(f"🥺 哎呀，差一點點喔！正確答案是：{ans_str}。" + (f"🎀 解析：{ana_str}" if ana_str else ""))
+    except Exception as e:
+        st.info(line) 
+
+def render_reading(line, prefix):
+    """渲染段落朗讀"""
+    try:
+        q_part = line
+        ch_part = ""
+        if "(中文：" in line:
+            parts = line.split("(中文：", 1)
+            q_part = parts[0].strip()
+            ch_part = parts[1].strip(")")
+        elif "(中文大意：" in line:
+            parts = line.split("(中文大意：", 1)
+            q_part = parts[0].strip()
+            ch_part = parts[1].strip(")")
+        
+        col_q, col_btn = st.columns([4, 1.5])
+        with col_q:
+            st.markdown(f"📖 **{q_part}**")
+        with col_btn:
+            if st.button("🎵 魔法朗讀", key=f"tts_btn_{prefix}"):
+                play_tts(q_part)
+                
+        if ch_part:
+            if st.toggle("💖 顯示中文翻譯", key=f"t_{prefix}"):
+                st.success(ch_part)
+    except:
+        st.info(line)
+
+def render_qa(line, prefix):
+    """渲染問答與情境問答"""
+    try:
+        text = line
+        q_am = text
+        ch_hint = ""
+        ans = ""
+        ana = ""
+        
+        if "中文：" in text:
+            parts = text.split("中文：", 1)
+            q_am = parts[0].strip()
+            text = parts[1]
+            
+        if "參考回答：" in text:
+            parts = text.split("參考回答：", 1)
+            ch_hint = parts[0].strip()
+            text = parts[1]
+        elif "作答參考：" in text:
+            parts = text.split("作答參考：", 1)
+            ch_hint = parts[0].strip()
+            text = parts[1]
+            
+        if "分析：" in text:
+            parts = text.split("分析：", 1)
+            ans = parts[0].strip()
+            ana = parts[1].strip()
+        else:
+            if not ans: 
+                ans = text.strip()
+        
+        q_am = q_am.replace("題目：", " 題目：")
+        
+        col_q, col_btn = st.columns([4, 1.5])
+        with col_q:
+            is_situational = "情境問答" in prefix
+            if is_situational:
+                if st.toggle("✨ 顯示題目與提示", key=f"t_show_q_{prefix}"):
+                    st.markdown(f"🗣️ **{q_am}**")
+                    if ch_hint:
+                        st.caption(f"🌸 中文提示：{ch_hint}")
+                else:
+                    st.markdown("**[🎀 提示文字隱藏中]**")
+            else:
+                st.markdown(f"🗣️ **{q_am}**")
+                if ch_hint:
+                    st.caption(f"🌸 中文提示：{ch_hint}")
+                    
+        with col_btn:
+            if st.button("🎵 聽取問句", key=f"tts_btn_{prefix}"):
+                play_tts(q_am)
+            
+        if ans or ana:
+            if st.toggle("💖 顯示參考解答", key=f"t_{prefix}"):
+                msg = ""
+                if ans: msg += f"👑 參考解答：{ans}"
+                if ana: msg += f"\n\n🎀 分析：{ana}"
+                st.success(msg)
+                if ans:
+                    if st.button("🎵 發音參考解答", key=f"tts_ans_{prefix}"):
+                        play_tts(ans)
+    except:
+        st.info(line)
+
+def render_picture(line, prefix):
+    """渲染看圖表達"""
+    try:
+        text = line
+        pic = text
+        hint = ""
+        ans = ""
+        ana = ""
+        
+        if "圖片情境：" in text:
+            parts = text.split("圖片情境：", 1)
+            pic = parts[1]
+            
+        if "中文提示：" in pic:
+            parts = pic.split("中文提示：", 1)
+            pic = parts[0].strip()
+            hint_part = parts[1]
+            
+            if "作答參考：" in hint_part:
+                h_parts = hint_part.split("作答參考：", 1)
+                hint = h_parts[0].strip()
+                ans_part = h_parts[1]
+                
+                if "重點分析：" in ans_part:
+                    a_parts = ans_part.split("重點分析：", 1)
+                    ans = a_parts[0].strip()
+                    ana = a_parts[1].strip()
+                elif "重點：" in ans_part:
+                    a_parts = ans_part.split("重點：", 1)
+                    ans = a_parts[0].strip()
+                    ana = a_parts[1].strip()
+                else:
+                    ans = ans_part.strip()
+            else:
+                hint = hint_part.strip()
+        
+        try:
+            idx = int(prefix.split('_')[-1]) + 1
+            img_path_jpg = f"assets/images/picture_{idx}.jpg"
+            img_path_png = f"assets/images/picture_{idx}.png"
+            
+            if os.path.exists(img_path_jpg):
+                st.image(img_path_jpg, use_container_width=True)
+            elif os.path.exists(img_path_png):
+                st.image(img_path_png, use_container_width=True)
+            else:
+                st.info(f"🖼️ 圖片佔位區：若要顯示圖片，請將圖片命名為 `picture_{idx}.jpg` 或 `.png`，並放置於 `assets/images/` 資料夾中。")
+        except:
+            pass
+
+        st.markdown(f"🖼️ **圖片情境：** {pic}")
+        
+        if hint:
+            st.caption(f"🌸 中文提示：{hint}")
+            
+        st.text_area("🧚‍♀️ 請在此寫下你的魔法草稿：", key=f"input_{prefix}", label_visibility="collapsed", placeholder="可以在此輸入您的口說草稿...")
+            
+        if ans or ana:
+            if st.toggle("💖 顯示作答參考", key=f"t_{prefix}"):
+                msg = ""
+                if ans: msg += f"👑 作答參考：{ans}"
+                if ana: msg += f"\n\n🎀 重點：{ana}"
+                st.success(msg)
+                
+                if ans:
+                    if st.button("🎵 發音作答參考", key=f"tts_ans_{prefix}"):
+                        play_tts(ans)
+    except:
+        st.info(line)
+
+def render_dictation(line, prefix):
+    """渲染句子聽寫"""
+    try:
+        text = line
+        am = text
+        ch = ""
+        ana = ""
+        
+        if "中文：" in text:
+            parts = text.split("中文：", 1)
+            am = parts[0].replace("阿美語：", "").strip()
+            text = parts[1]
+            
+            if "分析：" in text:
+                sub_parts = text.split("分析：", 1)
+                ch = sub_parts[0].strip()
+                ana = sub_parts[1].strip()
+            else:
+                ch = text.strip()
+        
+        st.text_area("🧚‍♀️ 請在此寫下你聽到的魔法句子：", key=f"input_{prefix}", label_visibility="collapsed", placeholder="請在此輸入您聽寫的句子...")
+        
+        col_q, col_btn = st.columns([4, 1.5])
+        
+        with col_q:
+            if st.toggle("✨ 顯示聽寫原文", key=f"t_show_dict_{prefix}"):
+                st.markdown(f"✍️ **{am}**")
+            else:
+                st.markdown("**[🎀 原文隱藏中，請點擊右側按鈕進行聽寫測試]**")
+                
+        with col_btn:
+            if st.button("🎵 播放語音", key=f"tts_btn_{prefix}"):
+                play_tts(am)
+            
+        if ch or ana:
+            if st.toggle("💖 顯示翻譯與分析", key=f"t_{prefix}"):
+                msg = ""
+                if ch: msg += f"🌸 中文：{ch}"
+                if ana: msg += f"\n\n🎀 分析：{ana}"
+                st.success(msg)
+    except:
+        st.info(line)
+
+def render_section(section_name, db):
+    """通用區塊渲染器"""
+    questions = db.get(section_name, [])
+    if not questions:
+        st.warning(f"🥺 魔法森林裡找不到【{section_name}】的資料呢。")
+        return
+
+    for i, line in enumerate(questions):
+        with st.container():
+            st.markdown('<div class="quiz-card">', unsafe_allow_html=True)
+            if "聽音選詞" in section_name or "對話理解" in section_name or section_name in ["詞彙語意", "語言結構"]:
+                render_mcq(line, f"{section_name}_{i}")
+            elif section_name == "段落朗讀":
+                render_reading(line, f"{section_name}_{i}")
+            elif section_name in ["情境問答", "問答"]:
+                render_qa(line, f"{section_name}_{i}")
+            elif section_name == "看圖表達":
+                render_picture(line, f"{section_name}_{i}")
+            elif section_name == "句子聽寫":
+                render_dictation(line, f"{section_name}_{i}")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+# ==========================================
+# 🚀 應用程式主邏輯 (Main)
+# ==========================================
+def main():
+    st.set_page_config(page_title="中高級認證 (公主特訓版)", page_icon="👑", layout="centered", initial_sidebar_state="collapsed")
+
+    # 🎀 可愛卡通公主風格 (Cute Cartoon Princess Theme) CSS
+    st.markdown("""
     <style>
-    /* 強制鎖定 (Light Mode) 咖啡與香草白映射 */
+    /* 強制鎖定為明亮的公主粉白配色 */
     :root {
-        --theme-bg: #FFFFFF; /* 絕對純白背景 */
-        --theme-card-bg: #FCFAF8; /* 極淺奶泡白 - 卡片背景 */
-        --theme-card-border: #D7CCC8; /* 淺拿鐵邊框 (Brown 200) */
-        --theme-text: #4E342E; /* 咖啡豆深色 (Brown 800) - 高對比度護眼 */
-        --theme-heading: #3E2723; /* 極深焙咖啡標題 (Brown 900) */
-        --theme-accent: #795548; /* 主題咖啡色 (Brown 500) */
-        --theme-accent-hover: #5D4037; /* 懸停深咖啡 (Brown 700) */
-        --theme-success-bg: #F5F5F5; /* 淺灰白提示底色，保持極簡 */
-        --theme-success-text: #3E2723; 
-        --theme-success-border: #8D6E63; 
-        --theme-shadow: rgba(78, 52, 46, 0.08); /* 咖啡色調的柔和陰影 */
+        --theme-bg: #FFF5F8; /* 櫻花淺粉底色 */
+        --theme-card-bg: #FFFFFF; /* 純白卡片 */
+        --theme-card-border: #FFB6C1; /* 淺粉紅邊框 */
+        --theme-text: #800080; /* 神秘紫字體，保護視力且高對比 */
+        --theme-heading: #FF1493; /* 桃紅標題 */
+        --theme-accent: #FF69B4; /* 亮粉紅主色調 */
+        --theme-accent-hover: #FF6EB4; /* 懸停粉紅 */
+        --theme-success-bg: #FFF0F5; /* 成功提示底色 */
+        --theme-success-text: #C71585; /* 成功文字深粉 */
+        --theme-success-border: #FFD700; /* 皇冠金邊框 */
+        --theme-shadow: rgba(255, 105, 180, 0.15); /* 粉紅魔法光暈 */
     }
 
-    /* 覆蓋 Streamlit 預設的所有深色模式，強制介面維持白底咖啡字 */
+    /* 覆蓋所有深色模式，確保介面永遠保持明亮可愛 */
     @media (prefers-color-scheme: dark) {
-        .stApp, .stAppHeader {
-            background-color: var(--theme-bg) !important;
-        }
+        .stApp, .stAppHeader { background-color: var(--theme-bg) !important; }
     }
 
-    /* 全域背景與文字 */
     .stApp {
         background-color: var(--theme-bg) !important;
         color: var(--theme-text) !important;
+        font-family: 'Comic Sans MS', 'Varela Round', 'PingFang TC', sans-serif;
     }
 
-    /* 測驗卡片視覺優化 */
-    .quiz-card {
-        background-color: var(--theme-card-bg);
-        padding: 28px; border-radius: 20px;
-        border: 2px solid var(--theme-card-border);
-        box-shadow: 0 6px 16px var(--theme-shadow);
-        margin-top: 20px; margin-bottom: 30px;
-        color: var(--theme-text);
-    }
-
-    /* 字體顏色強制套用咖啡色系 */
-    h1, h2, h3, h4, h5, h6 { color: var(--theme-heading) !important; }
-    h1 { font-weight: 800 !important; }
+    h1, h2, h3, h4, h5, h6 { color: var(--theme-heading) !important; font-weight: 800 !important; }
     p, span, label, div { color: var(--theme-text) !important; } 
 
-    /* 警告框 (stAlert/stSuccess/stError) */
-    .stAlert { border-radius: 14px !important; border: none !important; }
-    div[data-testid="stAlert"]:has(div:contains("✓")) { 
-        background-color: var(--theme-success-bg) !important; 
-        color: var(--theme-success-text) !important; 
-        border: 1px solid var(--theme-success-border) !important; 
+    /* 圓潤可愛的測驗卡片 */
+    .quiz-card {
+        background-color: var(--theme-card-bg);
+        padding: 28px;
+        border-radius: 24px !important;
+        border: 3px dashed var(--theme-card-border);
+        box-shadow: 0 8px 24px var(--theme-shadow);
+        margin-top: 15px;
+        margin-bottom: 25px;
+        transition: all 0.3s ease;
+    }
+    .quiz-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px var(--theme-shadow);
     }
 
-    /* 分段控制 (stSegmentedControl) */
+    hr { border-top: 2px dashed var(--theme-card-border); }
+
+    /* 警告與成功提示框 (帶有圓角與金邊) */
+    .stAlert { border-radius: 18px !important; border: none !important; }
+    div[data-testid="stAlert"]:has(div:contains("👑")), div[data-testid="stAlert"]:has(div:contains("✨")) { 
+        background-color: var(--theme-success-bg) !important; 
+        color: var(--theme-success-text) !important; 
+        border: 2px solid var(--theme-success-border) !important; 
+    }
+
+    /* 導航列切換按鈕 */
     div[data-testid="stSegmentedControl"] button {
         border-color: var(--theme-accent) !important; 
         color: var(--theme-heading) !important;
+        border-radius: 15px !important;
     }
     div[data-testid="stSegmentedControl"] button[aria-selected="true"] {
         background-color: var(--theme-accent) !important; 
         color: white !important;
     }
 
-    /* 按鈕 (stButton) */
+    /* 魔法按鈕設計 */
     .stButton>button {
-        border-radius: 12px !important;
-        background-color: transparent !important;
+        border-radius: 20px !important;
+        background-color: white !important;
         border: 2px solid var(--theme-accent) !important; 
         color: var(--theme-heading) !important; 
-        font-weight: 600;
+        font-weight: bold;
         transition: all 0.2s;
+        box-shadow: 0 4px 10px rgba(255, 105, 180, 0.1);
     }
     .stButton>button:hover {
-        background-color: var(--theme-card-bg) !important; 
+        background-color: var(--theme-bg) !important; 
         border-color: var(--theme-accent-hover) !important; 
         color: var(--theme-accent-hover) !important;
+        transform: scale(1.02);
     }
+    
+    /* 漸層按鈕 (提交類) */
     div[data-testid="stFormSubmitButton"] button {
-        background-color: var(--theme-accent) !important; 
+        background-image: linear-gradient(to right, #FFB6C1, #FF69B4) !important;
         color: white !important;
         border: none !important;
+        box-shadow: 0 4px 12px rgba(255, 105, 180, 0.4);
     }
     div[data-testid="stFormSubmitButton"] button:hover {
-        background-color: var(--theme-accent-hover) !important; 
+        background-image: linear-gradient(to right, #FF69B4, #FF1493) !important;
+        transform: scale(1.05);
     }
 
-    /* 單選框/複選框 */
+    /* 單選框與勾選框 */
     div[data-testid="stRadio"] label, div[data-testid="stCheckbox"] label { color: var(--theme-text) !important; }
     div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child { border-color: var(--theme-accent) !important; }
     div[data-testid="stRadio"] label[data-baseweb="radio"] div[aria-checked="true"] { background-color: var(--theme-accent) !important; }
 
-    /* 滑塊 */
-    div[data-testid="stSlider"] div[data-baseweb="slider"] div { background-color: var(--theme-card-border) !important; }
-    div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"] { background-color: var(--theme-accent) !important; border: 2px solid var(--theme-bg) !important; }
-
     /* 折疊面板 */
-    .stExpander { border-radius: 14px !important; border: 1px solid var(--theme-card-border) !important; background-color: var(--theme-card-bg) !important; }
+    .stExpander { border-radius: 18px !important; border: 2px solid var(--theme-card-border) !important; background-color: var(--theme-card-bg) !important; }
     div[data-testid="stExpander"] details summary p { color: var(--theme-text) !important; font-weight: 600; }
 
+    /* 文字輸入區 */
+    div[data-baseweb="input"], div[data-baseweb="textarea"] { 
+        background-color: white !important; 
+        border: 2px solid var(--theme-card-border) !important; 
+        border-radius: 12px !important;
+    }
+    div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea { color: var(--theme-text) !important; }
+    
     div[data-testid="stHorizontalBlock"] { background: transparent !important; border: none !important; box-shadow: none !important; }
-    
-    /* 強制輸入框背景與文字 */
-    div[data-baseweb="input"] { background-color: white !important; border-color: var(--theme-card-border) !important; }
-    div[data-baseweb="input"] input { color: var(--theme-text) !important; }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-@st.cache_data(show_spinner=False)
-def load_json_data(file_path):
-    if os.path.exists(file_path):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
+    st.title("👑 中高級認證 🎀 公主特訓版")
+    st.caption("✨ [請選擇您的皇家特訓項目] ✨")
 
-# 預載入全域題庫防腐層
-DB_DIALOGUE = load_json_data("data/listening_dialogue.json")
-DB_SPEAKING_READ = load_json_data("data/speaking_quiz.json")
-DB_SPEAKING_QA = load_json_data("data/speaking_situations.json")
-DB_SPEAKING_IMG = load_json_data("data/speaking_images.json")
-DB_READING = load_json_data("data/reading_quiz.json")
-DB_WRITING = load_json_data("data/writing_quiz.json")
+    main_options = ["📜 皇家認證說明", "🎶 聽力", "🌸 口說", "🏰 閱讀", "🧚‍♀️ 寫作"]
+    current_tab = st.segmented_control("魔法主選單", main_options, default=None, label_visibility="collapsed")
 
-QUIZ_DATA_WORDS = [
-    {"id": 1, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-01.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["riyar", "'alo", "fanaw", "sa'owac"], "correct_text": "riyar"},
-    {"id": 2, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-02.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["korkor", "rohayan", "romakat", "rotarot"], "correct_text": "romakat"},
-    {"id": 3, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-03.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["hadhad", "hakhak", "hawan", "hafay"], "correct_text": "hafay"},
-    {"id": 4, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-04.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["tefo'", "'okoy", "tafokod", "tafolod"], "correct_text": "tafokod"},
-    {"id": 5, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-05.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["fakar", "tayhi", "pitaw", "tarakar"], "correct_text": "pitaw"}
-]
+    if "previous_tab" not in st.session_state:
+        st.session_state.previous_tab = None
 
-st.title("🎓 中高級認證練習平台")
-st.caption("Amis Language Proficiency Test - Mid-High Level Practice")
+    if st.session_state.previous_tab != current_tab:
+        st.session_state.submitted = False
+        st.session_state.audio_triggered = False
+        if "writing_submitted" in st.session_state:
+            st.session_state.writing_submitted = False
+        st.session_state.previous_tab = current_tab
 
-main_options = ["📋 認證考試說明", "🎧 聽力", "🗣️ 口說", "📖 閱讀", "✍️ 寫作"]
-current_tab = st.segmented_control("主選單導覽", main_options, default="🎧 聽力", label_visibility="collapsed")
+    db = load_question_bank()
 
-if current_tab == "📋 認證考試說明":
-    st.subheader("📋 認證考試說明")
-    st.divider()
-    with st.expander("1. 詞彙範圍/參考教材", expanded=False):
-        st.markdown("* **詞彙範圍：** 學習詞表1至800詞，以及其衍生詞。\n* **參考教材：** 包含（第1階至第9階）教材、生活會話篇、閱讀書寫篇。")
-    with st.expander("2. 測驗架構/題型配分", expanded=False):
-        st.caption("中高級認證總分為100分，[聽力(20分)/口說(30分)/閱讀(30分)/寫作(20分)四個項目]")
-        st.markdown("* **聽力測驗** (聽音選詞, 對話理解)\n* **口說測驗** (段落朗讀, 情境問答, 看圖表達)\n* **閱讀測驗** (詞彙語意, 語言結構)\n* **寫作測驗** (句子聽寫, 問答題)")
-    with st.expander("3. 合格標準", expanded=False):
-        st.markdown("總分達60分以上，且單項成績達聽力15分、口說15分、閱讀18分、寫作12分以上。")
+    if current_tab == "📜 皇家認證說明":
+        st.subheader("📜 [皇家認證考試說明](https://lokahsu.ilrdf.org.tw/web_lokahsu/Files/Guide/1_20251211_162558.pdf)")
+        st.divider()
+        st.info("💖 歡迎來到魔法森林！請透過上方導覽列選擇您要進行的特訓項目。系統將自動從魔法圖書館載入完整題庫，並附帶南島語系精靈的模擬發音按鈕喔！")
 
-elif current_tab == "🎧 聽力":
-    st.subheader("🎧 聽力測驗 (pitengil)")
-    st.divider()
-    sub_tab = st.radio("題型選擇：", ["選擇題-聽音選詞", "選擇題-對話理解"], horizontal=True)
-    
-    if sub_tab == "選擇題-聽音選詞":
-        st.markdown('<div class="quiz-card">', unsafe_allow_html=True)
-        
-        if "lw_ptr" not in st.session_state: 
-            st.session_state.lw_ptr = 0
-        if "lw_order" not in st.session_state or len(st.session_state.lw_order) != len(QUIZ_DATA_WORDS):
-            st.session_state.lw_order = list(range(len(QUIZ_DATA_WORDS)))
-            random.shuffle(st.session_state.lw_order)
-            
-        ptr = st.session_state.lw_ptr
-        if ptr < len(QUIZ_DATA_WORDS):
-            quiz = QUIZ_DATA_WORDS[st.session_state.lw_order[ptr]]
-            st.write(f"**[當前進度：第 {ptr + 1} 題 / 共 {len(QUIZ_DATA_WORDS)} 題]**")
-            st.write(quiz["question_text"])
-            
-            if os.path.exists(quiz["audio_path"]):
-                st.audio(quiz["audio_path"], format="audio/mp3")
-            else:
-                st.warning(f"⚠️ 找不到音檔：`{quiz['audio_path']}`")
-                
-            with st.form(key=f"lw_form_{ptr}"):
-                opts = quiz["options"].copy()
-                if f"lw_opts_{ptr}" not in st.session_state:
-                    random.shuffle(opts)
-                    st.session_state[f"lw_opts_{ptr}"] = opts
-                
-                choice = st.radio("答案選項：", st.session_state[f"lw_opts_{ptr}"], index=None)
-                submit = st.form_submit_button("📥 提交答案")
-                
-                if submit:
-                    if choice == quiz["correct_text"]:
-                        st.success(f"✓ Fangcal! 正確答案：**{quiz['correct_text']}**")
-                    else:
-                        st.error(f"✕ 再接再厲！正確答案：**{quiz['correct_text']}**")
-            
-            if st.button("➡️ 下一題", key=f"lw_next_{ptr}"):
-                st.session_state.lw_ptr += 1
-                st.rerun()
-        else:
-            st.success("🎉 您已完成本輪挑戰！")
-            if st.button("🔄 重新挑戰"):
-                st.session_state.lw_ptr = 0
-                random.shuffle(st.session_state.lw_order)
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    elif current_tab == "🎶 聽力":
+        st.subheader("🎶 聽力測驗 (pitengil)")
+        st.divider()
+        listening_sub = st.radio("🌸 題型選擇：", ["選擇題-聽音選詞", "選擇題-對話理解"], horizontal=True)
+        if listening_sub == "選擇題-聽音選詞":
+            render_section("聽音選詞", db)
+        elif listening_sub == "選擇題-對話理解":
+            render_section("對話理解", db)
 
-    elif sub_tab == "選擇題-對話理解":
-        if not DB_DIALOGUE:
-            st.error("📭 題庫建置中或檔案遺失 (listening_dialogue.json)")
-        else:
-            st.markdown('<div class="quiz-card">', unsafe_allow_html=True)
-            mode = st.radio("選題模式：", ["隨機挑題", "自主選題"], horizontal=True)
-            
-            if "ld_ptr" not in st.session_state:
-                st.session_state.ld_ptr = 0
-            if "ld_order" not in st.session_state or len(st.session_state.ld_order) != len(DB_DIALOGUE):
-                st.session_state.ld_order = list(range(len(DB_DIALOGUE)))
-                random.shuffle(st.session_state.ld_order)
-                
-            q_idx = st.session_state.ld_order[st.session_state.ld_ptr] if mode == "隨機挑題" else st.selectbox("指定題組：", range(len(DB_DIALOGUE)), format_func=lambda x: f"第 {x+1} 題")
-            
-            if st.session_state.ld_ptr < len(DB_DIALOGUE) or mode == "自主選題":
-                quiz = DB_DIALOGUE[q_idx]
-                st.write(f"**[當前練習：第 {q_idx + 1} 題]**")
-                
-                audio_path = f"assets/audio/01_listening/listening_dialogue/dialogue_{str(quiz.get('quiz_id', q_idx)).zfill(2)}.mp3"
-                if os.path.exists(audio_path):
-                    st.audio(audio_path, format="audio/mp3")
-                else:
-                    st.info("💡 音檔製作中")
-                
-                if st.toggle("👁️ 顯示對話文字", key=f"ld_txt_{q_idx}"):
-                    st.info(quiz.get("dialogue_amis", "無對話資料"))
-                    
-                with st.form(key=f"ld_form_{q_idx}"):
-                    opts = quiz["options"].copy()
-                    if f"ld_opts_{q_idx}" not in st.session_state:
-                        random.shuffle(opts)
-                        st.session_state[f"ld_opts_{q_idx}"] = opts
-                        
-                    choice = st.radio("選項：", st.session_state[f"ld_opts_{q_idx}"], index=None)
-                    if st.form_submit_button("📥 提交答案"):
-                        if choice == quiz["correct_text"]:
-                            st.success(f"✓ 正確：{quiz['correct_text']}")
-                        else:
-                            st.error(f"✕ 錯誤，正確應為：{quiz['correct_text']}")
-                            
-                if mode == "隨機挑題" and st.button("➡️ 下一題", key=f"ld_next_{q_idx}"):
-                    st.session_state.ld_ptr += 1
-                    st.rerun()
-            else:
-                st.success("🎉 本輪隨機題組已完成！")
-                if st.button("🔄 重新挑戰"):
-                    st.session_state.ld_ptr = 0
-                    random.shuffle(st.session_state.ld_order)
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+    elif current_tab == "🌸 口說":
+        st.subheader("🌸 口說測驗 (pisowal)")
+        st.divider()
+        speaking_sub = st.radio("🌸 題型選擇：", ["段落朗讀", "情境問答", "看圖表達"], horizontal=True)
+        if speaking_sub == "段落朗讀":
+            render_section("段落朗讀", db)
+        elif speaking_sub == "情境問答":
+            render_section("情境問答", db)
+        elif speaking_sub == "看圖表達":
+            render_section("看圖表達", db)
 
-elif current_tab == "🗣️ 口說":
-    st.subheader("🗣️ 口說測驗 (pisowal)")
-    st.divider()
-    sub_tab = st.radio("題型選擇：", ["段落朗讀", "情境問答", "看圖表達"], horizontal=True)
-    
-    if sub_tab == "段落朗讀":
-        if not DB_SPEAKING_READ:
-            st.warning("📭 段落朗讀題庫建置中")
-        else:
-            st.markdown('<div class="quiz-card">', unsafe_allow_html=True)
-            opts = {f"題目 {q['quiz_id']}: {q['title']}": q for q in DB_SPEAKING_READ}
-            sel = st.selectbox("請選擇朗讀題目：", list(opts.keys()))
-            if sel:
-                q = opts[sel]
-                font_size = st.slider("🔍 字體大小", 16, 48, 24, 2)
-                st.markdown(f"<div style='padding:20px; border-radius:12px; background:var(--theme-bg); border-left:5px solid var(--theme-accent); border: 1px solid var(--theme-card-border); color:var(--theme-text); font-size:{font_size}px;'>{q['content']}</div>", unsafe_allow_html=True)
-                st.caption(f"來源：{q.get('source', '無')} ｜ 建議時間：1.5分鐘")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-    elif sub_tab == "情境問答":
-        if not DB_SPEAKING_QA:
-            st.warning("📭 情境問答題庫建置中")
-        else:
-            st.markdown('<div class="quiz-card">', unsafe_allow_html=True)
-            mode = st.radio("模式：", ["隨機挑題", "自主選題"], horizontal=True)
-            
-            if "sqa_ptr" not in st.session_state:
-                st.session_state.sqa_ptr = 0
-            if "sqa_order" not in st.session_state or len(st.session_state.sqa_order) != len(DB_SPEAKING_QA):
-                st.session_state.sqa_order = list(range(len(DB_SPEAKING_QA)))
-                random.shuffle(st.session_state.sqa_order)
-                
-            q_idx = st.session_state.sqa_order[st.session_state.sqa_ptr] if mode == "隨機挑題" else st.selectbox("選定題組：", range(len(DB_SPEAKING_QA)), format_func=lambda x: f"第 {x+1} 題")
-            
-            if st.session_state.sqa_ptr < len(DB_SPEAKING_QA) or mode == "自主選題":
-                q = DB_SPEAKING_QA[q_idx]
-                audio_path = f"assets/audio/02_speaking/speaking_qa/situation_{str(q.get('quiz_id', q_idx)).zfill(2)}.mp3"
-                if os.path.exists(audio_path):
-                    st.audio(audio_path, format="audio/mp3")
-                else:
-                    st.info("💡 音檔製作中")
-                
-                c1, c2 = st.columns(2)
-                with c1:
-                    if st.toggle("👁️ 顯示族語", key=f"sqa_amis_{q_idx}"):
-                        st.info(f"💬 {q.get('question_amis', '')}")
-                with c2:
-                    if st.toggle("👁️ 顯示中文", key=f"sqa_ch_{q_idx}"):
-                        st.markdown(f"<blockquote style='border-left: 5px solid var(--theme-accent); background: var(--theme-bg); padding: 10px; color: var(--theme-text);'>💡 {q.get('question_ch', '')}</blockquote>", unsafe_allow_html=True)
-                        
-                with st.expander("📥 顯示參考答案"):
-                    st.success(f"✨ **族語:**\n{q.get('suggested_answer_amis', '')}\n\n💡 **中文:**\n{q.get('suggested_answer_ch', '')}")
-                
-                if mode == "隨機挑題" and st.button("➡️ 下一題", key=f"sqa_next_{q_idx}"):
-                    st.session_state.sqa_ptr += 1
-                    st.rerun()
-            else:
-                st.success("🎉 情境問答隨機練習已完成！")
-                if st.button("🔄 重新挑戰"):
-                    st.session_state.sqa_ptr = 0
-                    random.shuffle(st.session_state.sqa_order)
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-    elif sub_tab == "看圖表達":
-        if not DB_SPEAKING_IMG:
-            st.warning("📭 看圖表達題庫建置中")
-        else:
-            st.markdown('<div class="quiz-card">', unsafe_allow_html=True)
-            opts = {q["title"]: q for q in DB_SPEAKING_IMG}
-            sel = st.selectbox("主題選擇：", list(opts.keys()))
-            if sel:
-                q = opts[sel]
-                
-                raw_img_name = q.get("image_path", "")
-                if not raw_img_name.startswith("assets/") and raw_img_name != "":
-                    target_img_path = os.path.join("assets", "images", raw_img_name)
-                else:
-                    target_img_path = raw_img_name
+    elif current_tab == "🏰 閱讀":
+        st.subheader("🏰 閱讀測驗 (piasip)")
+        st.divider()
+        reading_sub = st.radio("🌸 閱讀題型選擇：", ["選擇題-詞彙語意", "選擇題-語言結構"], horizontal=True)
+        if reading_sub == "選擇題-詞彙語意":
+            render_section("詞彙語意", db)
+        elif reading_sub == "選擇題-語言結構":
+            render_section("語言結構", db)
 
-                if os.path.exists(target_img_path):
-                    st.markdown(f"<div style='border: 3px solid var(--theme-card-border); border-radius: 15px; padding: 5px; background: var(--theme-bg); display: inline-block;'>", unsafe_allow_html=True)
-                    st.image(target_img_path, use_container_width=True)
-                    st.markdown("</div>", unsafe_allow_html=True)
-                else:
-                    st.error(f"⚠️ 圖片遺失：系統找不到 `{target_img_path}`")
-                
-                if st.toggle("📝 顯示草稿區", key=f"img_draft_{q.get('quiz_id', 0)}"):
-                    st.text_area("寫下回答提示：", key=f"draft_txt_{q.get('quiz_id', 0)}")
-                
-                with st.expander("📥 參考答案"):
-                    st.success(f"**族語:** {q.get('suggested_answer_amis', '')}\n\n**中文:** {q.get('suggested_answer_ch', '')}")
-            st.markdown('</div>', unsafe_allow_html=True)
+    elif current_tab == "🧚‍♀️ 寫作":
+        st.subheader("🧚‍♀️ 寫作測驗 (pitilid)")
+        st.divider()
+        writing_sub = st.radio("🌸 寫作題型選擇：", ["句子聽寫", "問答"], horizontal=True)
+        if writing_sub == "句子聽寫":
+            render_section("句子聽寫", db)
+        elif writing_sub == "問答":
+            render_section("問答", db)
 
-elif current_tab == "📖 閱讀":
-    st.subheader("📖 閱讀測驗 (piasip)")
-    st.divider()
-    if not DB_READING:
-        st.warning("📭 閱讀題庫建置中")
-    else:
-        target_type = "vocabulary" if st.radio("題型：", ["選擇題-詞彙語意", "選擇題-語言結構"], horizontal=True) == "選擇題-詞彙語意" else "structure"
-        db = [item for item in DB_READING if item.get("type") == target_type]
-        
-        if db:
-            st.markdown('<div class="quiz-card">', unsafe_allow_html=True)
-            state_ptr = f"r_{target_type}_ptr"
-            state_order = f"r_{target_type}_order"
-            
-            if state_ptr not in st.session_state:
-                st.session_state[state_ptr] = 0
-            
-            if state_order not in st.session_state or len(st.session_state[state_order]) != len(db):
-                st.session_state[state_order] = list(range(len(db)))
-                random.shuffle(st.session_state[state_order])
-            
-            ptr = st.session_state[state_ptr]
-            if ptr < len(db):
-                q = db[st.session_state[state_order][ptr]]
-                st.write(f"**[進度：第 {ptr + 1} 題 / 共 {len(db)} 題]**")
-                st.markdown(f"<p style='font-size: 20px; font-weight: 600; color: var(--theme-text);'>{q['question_text']}</p>", unsafe_allow_html=True)
-                
-                with st.form(key=f"r_form_{target_type}_{ptr}"):
-                    opts = q["options"].copy()
-                    if f"r_opts_{target_type}_{ptr}" not in st.session_state:
-                        random.shuffle(opts)
-                        st.session_state[f"r_opts_{target_type}_{ptr}"] = opts
-                    
-                    choice = st.radio("請選擇：", st.session_state[f"r_opts_{target_type}_{ptr}"], index=None)
-                    if st.form_submit_button("📥 提交"):
-                        meaning = q.get("chinese_meaning", "")
-                        disp_ans = f"{q['correct_text']} ({meaning})" if meaning else q['correct_text']
-                        if choice == q['correct_text']:
-                            st.success(f"✓ Fangcal! 正確答案：**{disp_ans}**")
-                        else:
-                            st.error(f"✕ 再接再厲！答案為：**{disp_ans}**")
-                
-                c1, c2 = st.columns(2)
-                with c1:
-                    if st.button("⬅️ 上一題", disabled=(ptr==0), key=f"r_prev_{target_type}_{ptr}"):
-                        st.session_state[state_ptr] -= 1
-                        st.rerun()
-                with c2:
-                    if st.button("➡️ 下一題", key=f"r_next_{target_type}_{ptr}"):
-                        st.session_state[state_ptr] += 1
-                        st.rerun()
-            else:
-                st.success("🎉 您已完成本項目全部題組練習！")
-                if st.button("🔄 重新洗牌挑戰", key=f"r_reset_{target_type}"):
-                    st.session_state[state_ptr] = 0
-                    random.shuffle(st.session_state[state_order])
-                    st.rerun()
-                    
-            st.markdown('</div>', unsafe_allow_html=True)
+    st.write("---")
+    st.caption(f"© 2026 中高級認證 App 三一魔法開發團隊 ｜ 系統版本： **{APP_VERSION}** 💖")
 
-elif current_tab == "✍️ 寫作":
-    st.subheader("✍️ 寫作測驗 (pitilid)")
-    st.divider()
-    if not DB_WRITING:
-        st.warning("📭 寫作題庫建置中")
-    else:
-        target_type = "dictation" if st.radio("題型：", ["句子聽寫", "問答"], horizontal=True) == "句子聽寫" else "question"
-        db = [item for item in DB_WRITING if item.get("type") == target_type]
-        
-        if db:
-            st.markdown('<div class="quiz-card">', unsafe_allow_html=True)
-            state_ptr = f"w_{target_type}_ptr"
-            if state_ptr not in st.session_state:
-                st.session_state[state_ptr] = 0
-            
-            ptr = st.session_state[state_ptr]
-            if ptr < len(db):
-                q = db[ptr]
-                st.write(f"**[進度：第 {ptr + 1} 題 / 共 {len(db)} 題]**")
-                
-                if target_type == "dictation":
-                    if os.path.exists(q.get("audio_path", "")):
-                        st.audio(q["audio_path"], format="audio/mp3")
-                    st.text_input("完整族語句子：", key=f"w_in_{ptr}")
-                    with st.expander("📥 核對答案"):
-                        st.success(q.get("correct_text", ""))
-                else:
-                    st.markdown(f"#### ❓ <span style='color: var(--theme-heading);'>{q.get('question_text', '')}</span>", unsafe_allow_html=True)
-                    if st.toggle("👁️ 中文提示", key=f"w_hint_{ptr}"):
-                        st.info(q.get("chinese_translation", ""))
-                    st.text_input("輸入練習：", key=f"w_in_{ptr}")
-                    with st.expander("📥 參考答案"):
-                        st.success(q.get("suggested_answer", ""))
-                
-                if st.button("➡️ 下一題", key=f"w_next_{target_type}_{ptr}"):
-                    st.session_state[state_ptr] += 1
-                    st.rerun()
-            else:
-                st.success("🎉 練習完成！")
-                if st.button("🔄 重新開始", key=f"w_reset_{target_type}"):
-                    st.session_state[state_ptr] = 0
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-
-st.write("---")
-st.markdown(f"<div style='text-align: center; color: var(--theme-text); opacity: 0.8;'>© 2026 中高級認證 App 三一開發團隊 ｜ 系統版本：<b>{APP_VERSION}</b></div>", unsafe_allow_html=True)
+if __name__ == "__main__":
+    main()

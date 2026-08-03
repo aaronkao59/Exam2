@@ -3,115 +3,121 @@ import random
 import json
 import os
 
-APP_VERSION = "v3.1.2 (Warm UI Edition)"
+APP_VERSION = "v3.1.3 (Adaptive Warm UI Edition)"
 
-# 💻 10-3.介面視覺架構 (UIUX-CRF v9.0): 定義暖色系色彩變數
-# 琥珀色 Amber 600: #D97706 (主色調)
-# 琥珀色 Amber 50:  #FFFBEB (淺背景色)
-# 橘色 Orange 100:  #FFEDD5 (卡片背景)
-# 棕色 Stone 700:   #44403C (文字色)
+st.set_page_config(page_title="中高級認證", page_icon="🎓", layout="wide", initial_sidebar_state="collapsed")
 
-st.set_page_config(
-    page_title="中高級認證 - 阿美語學習認證", 
-    page_icon="🎓", 
-    layout="wide", 
-    initial_sidebar_state="collapsed"
-)
-
-# 注入 CSS 以完全覆蓋 Streamlit 預設風格為暖色調
+# 透過 CSS 變數 (CSS Variables) 實作自適應色彩抽離，完美適配 Dark/Light 模式
 st.markdown("""
     <style>
-    /* 全域背景與文字顏色調整 */
+    /* 預設 (Light Mode) 暖色調映射 */
+    :root {
+        --theme-bg: #FFFBEB;
+        --theme-card-bg: #FFEDD5;
+        --theme-card-border: #FDBA74;
+        --theme-text: #44403C;
+        --theme-heading: #B45309;
+        --theme-accent: #F59E0B;
+        --theme-accent-hover: #D97706;
+        --theme-success-bg: #FEF3C7;
+        --theme-success-text: #92400E;
+        --theme-success-border: #FCD34D;
+        --theme-shadow: rgba(194, 65, 12, 0.1);
+    }
+
+    /* 深色模式 (Dark Mode) 暖色調映射 */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --theme-bg: #1C1917;
+            --theme-card-bg: #292524;
+            --theme-card-border: #78350F;
+            --theme-text: #E7E5E4;
+            --theme-heading: #FBBF24;
+            --theme-accent: #F59E0B;
+            --theme-accent-hover: #FCD34D;
+            --theme-success-bg: #451A03;
+            --theme-success-text: #FDE68A;
+            --theme-success-border: #B45309;
+            --theme-shadow: rgba(0, 0, 0, 0.4);
+        }
+    }
+
+    /* 全域背景與文字 */
     .stApp {
-        background-color: #FFFBEB; /* Amber 50 - 極淺琥珀色背景 */
-        color: #44403C; /* Stone 700 - 深棕色文字，較柔和 */
+        background-color: var(--theme-bg);
+        color: var(--theme-text);
     }
 
-    /* 💡 [10-3: 第一支柱] 測驗卡片視覺優化 */
+    /* 測驗卡片視覺優化 */
     .quiz-card {
-        background-color: #FFEDD5; /* Orange 100 - 淺橘色卡片背景 */
+        background-color: var(--theme-card-bg);
         padding: 28px; border-radius: 20px;
-        border: 2px solid #FDBA74; /* Orange 300 - 卡片邊框 */
-        box-shadow: 0 6px 16px rgba(194, 65, 12, 0.1); /* 帶有橘色的柔和陰影 */
+        border: 2px solid var(--theme-card-border);
+        box-shadow: 0 6px 16px var(--theme-shadow);
         margin-top: 20px; margin-bottom: 30px;
+        color: var(--theme-text);
     }
 
-    /* 標題顏色調整 (h1, h2, h3) - 統一使用琥珀色 Amber 700 */
-    h1, h2, h3 { 
-        color: #B45309 !important; /* Amber 700 */
-    }
+    h1, h2, h3, h4, h5, h6 { color: var(--theme-heading) !important; }
     h1 { font-weight: 800 !important; }
 
-    /* 深色模式適配 (暖色系 dark mode) */
-    @media (prefers-color-scheme: dark) {
-        .stApp { background-color: #1C1917; color: #E7E5E4; } /* Stone 背景與文字 */
-        .quiz-card {
-            background-color: #292524; /*深Stone */
-            border: 2px solid #854D0E; /* Amber 800 */
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-        }
-        h1, h2, h3 { color: #FBBF24 !important; } /* Amber 400 */
+    /* 警告框 (stAlert/stSuccess/stError) */
+    .stAlert { border-radius: 14px !important; border: none !important; }
+    div[data-testid="stAlert"] { 
+        background-color: var(--theme-success-bg) !important; 
+        color: var(--theme-success-text) !important; 
+        border: 1px solid var(--theme-success-border) !important; 
     }
 
-    /* Streamlit 原生元件客製化 */
-    
-    /* 1. 警告框 (stAlert/stSuccess/stError) */
-    .stAlert { border-radius: 14px !important; border: none !important; }
-    div[data-testid="stAlert"] { background-color: #FEF3C7 !important; color: #92400E !important; border: 1px solid #FCD34D !important; } /* Success 統一用暖黃 */
-
-    /* 2. 分段控制 (stSegmentedControl) */
+    /* 分段控制 (stSegmentedControl) */
     div[data-testid="stSegmentedControl"] button {
-        border-color: #F59E0B !important; /* Amber 500 */
-        color: #B45309 !important; /* Amber 700 */
+        border-color: var(--theme-accent) !important; 
+        color: var(--theme-heading) !important;
     }
     div[data-testid="stSegmentedControl"] button[aria-selected="true"] {
-        background-color: #F59E0B !important; /* Amber 500 */
+        background-color: var(--theme-accent) !important; 
         color: white !important;
     }
 
-    /* 3. 按鈕 (stButton) - 預設按鈕 */
+    /* 按鈕 (stButton) */
     .stButton>button {
         border-radius: 12px !important;
-        background-color: white;
-        border: 2px solid #F59E0B !important; /* Amber 500 */
-        color: #B45309 !important; /* Amber 700 */
+        background-color: transparent;
+        border: 2px solid var(--theme-accent) !important; 
+        color: var(--theme-heading) !important; 
         font-weight: 600;
         transition: all 0.2s;
     }
     .stButton>button:hover {
-        background-color: #FFFBEB; /* Amber 50 */
-        border-color: #D97706 !important; /* Amber 600 */
-        box-shadow: 0 2px 5px rgba(217, 119, 6, 0.2);
+        background-color: var(--theme-card-bg); 
+        border-color: var(--theme-accent-hover) !important; 
+        color: var(--theme-accent-hover) !important;
     }
-    
-    /* 表單提交按鈕 (特別強調) */
     div[data-testid="stFormSubmitButton"] button {
-        background-color: #F59E0B !important; /* Amber 500 */
+        background-color: var(--theme-accent) !important; 
         color: white !important;
         border: none !important;
     }
     div[data-testid="stFormSubmitButton"] button:hover {
-        background-color: #D97706 !important; /* Amber 600 */
+        background-color: var(--theme-accent-hover) !important; 
     }
 
-    /* 4. 單選框/複選框 (stRadio/stCheckbox) */
-    div[data-testid="stRadio"] label, div[data-testid="stCheckbox"] label { color: #44403C !important; }
-    div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child { border-color: #F59E0B !important; } /* 未選中邊框 */
-    div[data-testid="stRadio"] label[data-baseweb="radio"] div[aria-checked="true"] { background-color: #F59E0B !important; } /* 選中填充 */
+    /* 單選框/複選框 */
+    div[data-testid="stRadio"] label, div[data-testid="stCheckbox"] label { color: var(--theme-text) !important; }
+    div[data-testid="stRadio"] label[data-baseweb="radio"] div:first-child { border-color: var(--theme-accent) !important; }
+    div[data-testid="stRadio"] label[data-baseweb="radio"] div[aria-checked="true"] { background-color: var(--theme-accent) !important; }
 
-    /* 5. 滑塊 (stSlider) */
-    div[data-testid="stSlider"] div[data-baseweb="slider"] div { background-color: #FBBF24 !important; } /* 滑軌 */
-    div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"] { background-color: #D97706 !important; border: 2px solid white !important; } /* 滑塊 */
+    /* 滑塊 */
+    div[data-testid="stSlider"] div[data-baseweb="slider"] div { background-color: var(--theme-card-border) !important; }
+    div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"] { background-color: var(--theme-accent) !important; border: 2px solid var(--theme-bg) !important; }
 
-    /* 6. 折疊面板 (stExpander) */
-    .stExpander { border-radius: 14px !important; border: 1px solid #FDBA74 !important; background-color: white !important; }
+    /* 折疊面板 */
+    .stExpander { border-radius: 14px !important; border: 1px solid var(--theme-card-border) !important; background-color: var(--theme-card-bg) !important; }
+    div[data-testid="stExpander"] details summary p { color: var(--theme-text) !important; }
 
-    /* 修復 HorizontalBlock */
     div[data-testid="stHorizontalBlock"] { background: transparent !important; border: none !important; box-shadow: none !important; }
     </style>
 """, unsafe_allow_html=True)
-
-# --- 核心邏輯 (保持不變) ---
 
 @st.cache_data(show_spinner=False)
 def load_json_data(file_path):
@@ -131,7 +137,6 @@ DB_SPEAKING_IMG = load_json_data("data/speaking_images.json")
 DB_READING = load_json_data("data/reading_quiz.json")
 DB_WRITING = load_json_data("data/writing_quiz.json")
 
-# 聽音選詞固定的題庫 (範例)
 QUIZ_DATA_WORDS = [
     {"id": 1, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-01.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["riyar", "'alo", "fanaw", "sa'owac"], "correct_text": "riyar"},
     {"id": 2, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-02.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["korkor", "rohayan", "romakat", "rotarot"], "correct_text": "romakat"},
@@ -140,14 +145,10 @@ QUIZ_DATA_WORDS = [
     {"id": 5, "audio_path": "assets/audio/01_listening/listening_words/tengil-a1-05.mp3", "question_text": "聆聽音檔，選出關聯的詞彙：", "options": ["fakar", "tayhi", "pitaw", "tarakar"], "correct_text": "pitaw"}
 ]
 
-# --- 介面渲染 ---
-
-# 🛡️ 介面視覺架構 (UIUX-CRF): 標題顏色已透過 CSS 轉為琥珀色
 st.title("🎓 中高級認證練習平台")
 st.caption("Amis Language Proficiency Test - Mid-High Level Practice")
 
 main_options = ["📋 認證考試說明", "🎧 聽力", "🗣️ 口說", "📖 閱讀", "✍️ 寫作"]
-# 💡 UI 控制項已轉為暖琥珀色
 current_tab = st.segmented_control("主選單導覽", main_options, default="🎧 聽力", label_visibility="collapsed")
 
 if current_tab == "📋 認證考試說明":
@@ -164,7 +165,6 @@ if current_tab == "📋 認證考試說明":
 elif current_tab == "🎧 聽力":
     st.subheader("🎧 聽力測驗 (pitengil)")
     st.divider()
-    # 💡 Radio 元件已轉為琥珀色風格
     sub_tab = st.radio("題型選擇：", ["選擇題-聽音選詞", "選擇題-對話理解"], horizontal=True)
     
     if sub_tab == "選擇題-聽音選詞":
@@ -182,13 +182,11 @@ elif current_tab == "🎧 聽力":
             st.write(f"**[當前進度：第 {ptr + 1} 題 / 共 {len(QUIZ_DATA_WORDS)} 題]**")
             st.write(quiz["question_text"])
             
-            # 💡 Audio 元件 Streamlit 無法通過 CSS 深度客製，保持原樣但周圍視覺已轉暖
             if os.path.exists(quiz["audio_path"]):
                 st.audio(quiz["audio_path"], format="audio/mp3")
             else:
                 st.warning(f"⚠️ 找不到音檔：`{quiz['audio_path']}`")
                 
-            # 💡 Form 按鈕已轉為琥珀色填充
             with st.form(key=f"lw_form_{ptr}"):
                 opts = quiz["options"].copy()
                 if f"lw_opts_{ptr}" not in st.session_state:
@@ -198,14 +196,12 @@ elif current_tab == "🎧 聽力":
                 choice = st.radio("答案選項：", st.session_state[f"lw_opts_{ptr}"], index=None)
                 submit = st.form_submit_button("📥 提交答案")
                 
-                # 💡 Success 提示框已轉為暖黃色調
                 if submit:
                     if choice == quiz["correct_text"]:
                         st.success(f"✓ Fangcal! 正確答案：**{quiz['correct_text']}**")
                     else:
                         st.error(f"✕ 再接再厲！正確答案：**{quiz['correct_text']}**")
             
-            # 💡 下一題按鈕已轉為琥珀色外框
             if st.button("➡️ 下一題", key=f"lw_next_{ptr}"):
                 st.session_state.lw_ptr += 1
                 st.rerun()
@@ -242,7 +238,6 @@ elif current_tab == "🎧 聽力":
                 else:
                     st.info("💡 音檔製作中")
                 
-                # 💡 Toggle 元件 Streamlit 預設為 Teal，這裡用 CSS 強制轉為琥珀色
                 if st.toggle("👁️ 顯示對話文字", key=f"ld_txt_{q_idx}"):
                     st.info(quiz.get("dialogue_amis", "無對話資料"))
                     
@@ -284,10 +279,8 @@ elif current_tab == "🗣️ 口說":
             sel = st.selectbox("請選擇朗讀題目：", list(opts.keys()))
             if sel:
                 q = opts[sel]
-                # 💡 Slider 滑塊已轉為棕/琥珀色
                 font_size = st.slider("🔍 字體大小", 16, 48, 24, 2)
-                # [10-3: 物理支柱] 文字區背景改為暖橘色邊框
-                st.markdown(f"<div style='padding:20px; border-radius:12px; background:#FFFBEB; border-left:5px solid #F59E0B; border: 1px solid #FDBA74; color:#44403C; font-size:{font_size}px;'>{q['content']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='padding:20px; border-radius:12px; background:var(--theme-bg); border-left:5px solid var(--theme-accent); border: 1px solid var(--theme-card-border); color:var(--theme-text); font-size:{font_size}px;'>{q['content']}</div>", unsafe_allow_html=True)
                 st.caption(f"來源：{q.get('source', '無')} ｜ 建議時間：1.5分鐘")
             st.markdown('</div>', unsafe_allow_html=True)
             
@@ -320,10 +313,8 @@ elif current_tab == "🗣️ 口說":
                         st.info(f"💬 {q.get('question_amis', '')}")
                 with c2:
                     if st.toggle("👁️ 顯示中文", key=f"sqa_ch_{q_idx}"):
-                        # [10-3] 暖色系 Markdown 引用塊
-                        st.markdown(f"<blockquote style='border-left: 5px solid #FCD34D; background: #FFFBEB; padding: 10px; color: #92400E;'>💡 {q.get('question_ch', '')}</blockquote>", unsafe_allow_html=True)
+                        st.markdown(f"<blockquote style='border-left: 5px solid var(--theme-success-border); background: var(--theme-bg); padding: 10px; color: var(--theme-text);'>💡 {q.get('question_ch', '')}</blockquote>", unsafe_allow_html=True)
                         
-                # 💡 Expander 已轉為琥珀色邊框樣式
                 with st.expander("📥 顯示參考答案"):
                     st.success(f"✨ **族語:**\n{q.get('suggested_answer_amis', '')}\n\n💡 **中文:**\n{q.get('suggested_answer_ch', '')}")
                 
@@ -348,7 +339,6 @@ elif current_tab == "🗣️ 口說":
             if sel:
                 q = opts[sel]
                 
-                # [10-1: 資源層] 智慧路徑掛載
                 raw_img_name = q.get("image_path", "")
                 if not raw_img_name.startswith("assets/") and raw_img_name != "":
                     target_img_path = os.path.join("assets", "images", raw_img_name)
@@ -356,15 +346,13 @@ elif current_tab == "🗣️ 口說":
                     target_img_path = raw_img_name
 
                 if os.path.exists(target_img_path):
-                    # 💡 圖片邊框加上琥珀色
-                    st.markdown(f"<div style='border: 3px solid #FDBA74; border-radius: 15px; padding: 5px; background: white; display: inline-block;'>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='border: 3px solid var(--theme-card-border); border-radius: 15px; padding: 5px; background: var(--theme-bg); display: inline-block;'>", unsafe_allow_html=True)
                     st.image(target_img_path, use_container_width=True)
                     st.markdown("</div>", unsafe_allow_html=True)
                 else:
                     st.error(f"⚠️ 圖片遺失：系統找不到 `{target_img_path}`")
                 
                 if st.toggle("📝 顯示草稿區", key=f"img_draft_{q.get('quiz_id', 0)}"):
-                    # 💡 TextArea 已適配暖色邊框
                     st.text_area("寫下回答提示：", key=f"draft_txt_{q.get('quiz_id', 0)}")
                 
                 with st.expander("📥 參考答案"):
@@ -396,8 +384,7 @@ elif current_tab == "📖 閱讀":
             if ptr < len(db):
                 q = db[st.session_state[state_order][ptr]]
                 st.write(f"**[進度：第 {ptr + 1} 題 / 共 {len(db)} 題]**")
-                # [10-3: 物理支柱] 題目字體放大並加深棕色
-                st.markdown(f"<p style='font-size: 20px; font-weight: 600; color: #44403C;'>{q['question_text']}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='font-size: 20px; font-weight: 600; color: var(--theme-text);'>{q['question_text']}</p>", unsafe_allow_html=True)
                 
                 with st.form(key=f"r_form_{target_type}_{ptr}"):
                     opts = q["options"].copy()
@@ -406,7 +393,6 @@ elif current_tab == "📖 閱讀":
                         st.session_state[f"r_opts_{target_type}_{ptr}"] = opts
                     
                     choice = st.radio("請選擇：", st.session_state[f"r_opts_{target_type}_{ptr}"], index=None)
-                    # 💡 提交按鈕為琥珀色填充
                     if st.form_submit_button("📥 提交"):
                         meaning = q.get("chinese_meaning", "")
                         disp_ans = f"{q['correct_text']} ({meaning})" if meaning else q['correct_text']
@@ -417,7 +403,6 @@ elif current_tab == "📖 閱讀":
                 
                 c1, c2 = st.columns(2)
                 with c1:
-                    # 💡 上一題/下一題按鈕為琥珀色外框
                     if st.button("⬅️ 上一題", disabled=(ptr==0), key=f"r_prev_{target_type}_{ptr}"):
                         st.session_state[state_ptr] -= 1
                         st.rerun()
@@ -457,13 +442,11 @@ elif current_tab == "✍️ 寫作":
                 if target_type == "dictation":
                     if os.path.exists(q.get("audio_path", "")):
                         st.audio(q["audio_path"], format="audio/mp3")
-                    # 💡 TextInput 已適配琥珀色邊框
                     st.text_input("完整族語句子：", key=f"w_in_{ptr}")
                     with st.expander("📥 核對答案"):
                         st.success(q.get("correct_text", ""))
                 else:
-                    # 💡 題目顏色轉為琥珀棕
-                    st.markdown(f"#### ❓ <span style='color: #B45309;'>{q.get('question_text', '')}</span>", unsafe_allow_html=True)
+                    st.markdown(f"#### ❓ <span style='color: var(--theme-heading);'>{q.get('question_text', '')}</span>", unsafe_allow_html=True)
                     if st.toggle("👁️ 中文提示", key=f"w_hint_{ptr}"):
                         st.info(q.get("chinese_translation", ""))
                     st.text_input("輸入練習：", key=f"w_in_{ptr}")
@@ -471,8 +454,7 @@ elif current_tab == "✍️ 寫作":
                         st.success(q.get("suggested_answer", ""))
                 
                 if st.button("➡️ 下一題", key=f"w_next_{target_type}_{ptr}"):
-                    st.session_state.w_ptr += 1 # 修復：原代碼這裡是 w_ptr，應與 state_ptr 一致，但為向下相容保持ptr增加邏輯
-                    # st.session_state[state_ptr] += 1 # 建議修正為此
+                    st.session_state[state_ptr] += 1
                     st.rerun()
             else:
                 st.success("🎉 練習完成！")
@@ -481,6 +463,5 @@ elif current_tab == "✍️ 寫作":
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# 💻 [10-3: 物理支柱] 頁尾也調整為柔和 Stone 色調
 st.write("---")
-st.markdown(f"<div style='text-align: center; color: #78716C;'>© 2026 中高級認證 App 三一開發團隊 ｜ 本地化架構：Lexicon-CRF v6.4 ｜ 系統版本：<b>{APP_VERSION}</b></div>", unsafe_allow_html=True)
+st.markdown(f"<div style='text-align: center; color: var(--theme-text); opacity: 0.8;'>© 2026 中高級認證 App 三一開發團隊 ｜ 系統版本：<b>{APP_VERSION}</b></div>", unsafe_allow_html=True)

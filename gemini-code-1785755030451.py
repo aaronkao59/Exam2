@@ -3,41 +3,41 @@ import random
 import json
 import os
 
-APP_VERSION = "v3.1.3 (Adaptive Warm UI Edition)"
+APP_VERSION = "v3.1.4 (Adaptive Blue UI Edition)"
 
 st.set_page_config(page_title="中高級認證", page_icon="🎓", layout="wide", initial_sidebar_state="collapsed")
 
-# 透過 CSS 變數 (CSS Variables) 實作自適應色彩抽離，完美適配 Dark/Light 模式
+# 透過 CSS 變數實作自適應色彩抽離，完美適配 Dark/Light 模式下的藍色系
 st.markdown("""
     <style>
-    /* 預設 (Light Mode) 暖色調映射 */
+    /* 預設 (Light Mode) 藍色調映射 */
     :root {
-        --theme-bg: #FFFBEB;
-        --theme-card-bg: #FFEDD5;
-        --theme-card-border: #FDBA74;
-        --theme-text: #44403C;
-        --theme-heading: #B45309;
-        --theme-accent: #F59E0B;
-        --theme-accent-hover: #D97706;
-        --theme-success-bg: #FEF3C7;
-        --theme-success-text: #92400E;
-        --theme-success-border: #FCD34D;
-        --theme-shadow: rgba(194, 65, 12, 0.1);
+        --theme-bg: #F8FAFC; /* Slate 50 - 極淺藍灰背景 */
+        --theme-card-bg: #EFF6FF; /* Blue 50 - 淺藍色卡片背景 */
+        --theme-card-border: #BFDBFE; /* Blue 200 - 卡片邊框 */
+        --theme-text: #1E293B; /* Slate 800 - 深藍灰主字體 */
+        --theme-heading: #1D4ED8; /* Blue 700 - 核心標題藍色 */
+        --theme-accent: #2563EB; /* Blue 600 - 按鈕與強調色 */
+        --theme-accent-hover: #1E40AF; /* Blue 800 - 懸停加深 */
+        --theme-success-bg: #F0FDF4; /* Green 50 - 成功提示底色 */
+        --theme-success-text: #166534; /* Green 800 - 成功提示文字 */
+        --theme-success-border: #BBF7D0; /* Green 200 - 成功提示邊框 */
+        --theme-shadow: rgba(30, 58, 138, 0.08); /* 帶有藍色的柔和陰影 */
     }
 
-    /* 深色模式 (Dark Mode) 暖色調映射 */
+    /* 深色模式 (Dark Mode) 藍色調映射 */
     @media (prefers-color-scheme: dark) {
         :root {
-            --theme-bg: #1C1917;
-            --theme-card-bg: #292524;
-            --theme-card-border: #78350F;
-            --theme-text: #E7E5E4;
-            --theme-heading: #FBBF24;
-            --theme-accent: #F59E0B;
-            --theme-accent-hover: #FCD34D;
-            --theme-success-bg: #451A03;
-            --theme-success-text: #FDE68A;
-            --theme-success-border: #B45309;
+            --theme-bg: #0F172A; /* Slate 900 - 深邃藍灰背景 */
+            --theme-card-bg: #1E293B; /* Slate 800 - 深色卡片背景 */
+            --theme-card-border: #1E3A8A; /* Blue 900 - 暗藍邊框 */
+            --theme-text: #F1F5F9; /* Slate 100 - 淺灰藍主字體 */
+            --theme-heading: #60A5FA; /* Blue 400 - 亮藍色標題 */
+            --theme-accent: #3B82F6; /* Blue 500 - 按鈕與強調色 */
+            --theme-accent-hover: #93C5FD; /* Blue 300 - 懸停提亮 */
+            --theme-success-bg: #052E16; 
+            --theme-success-text: #86EFAC; 
+            --theme-success-border: #166534; 
             --theme-shadow: rgba(0, 0, 0, 0.4);
         }
     }
@@ -58,12 +58,14 @@ st.markdown("""
         color: var(--theme-text);
     }
 
+    /* 字體顏色強制套用藍色系 */
     h1, h2, h3, h4, h5, h6 { color: var(--theme-heading) !important; }
     h1 { font-weight: 800 !important; }
+    p, span, label, div { color: var(--theme-text); } /* 確保一般字體跟隨主題 */
 
     /* 警告框 (stAlert/stSuccess/stError) */
     .stAlert { border-radius: 14px !important; border: none !important; }
-    div[data-testid="stAlert"] { 
+    div[data-testid="stAlert"]:has(div:contains("✓")) { 
         background-color: var(--theme-success-bg) !important; 
         color: var(--theme-success-text) !important; 
         border: 1px solid var(--theme-success-border) !important; 
@@ -113,7 +115,7 @@ st.markdown("""
 
     /* 折疊面板 */
     .stExpander { border-radius: 14px !important; border: 1px solid var(--theme-card-border) !important; background-color: var(--theme-card-bg) !important; }
-    div[data-testid="stExpander"] details summary p { color: var(--theme-text) !important; }
+    div[data-testid="stExpander"] details summary p { color: var(--theme-text) !important; font-weight: 600; }
 
     div[data-testid="stHorizontalBlock"] { background: transparent !important; border: none !important; box-shadow: none !important; }
     </style>
@@ -129,7 +131,7 @@ def load_json_data(file_path):
             return []
     return []
 
-# 預載入全域題庫防腐層
+# 預載入全域題庫防腐層[cite: 2]
 DB_DIALOGUE = load_json_data("data/listening_dialogue.json")
 DB_SPEAKING_READ = load_json_data("data/speaking_quiz.json")
 DB_SPEAKING_QA = load_json_data("data/speaking_situations.json")
@@ -280,6 +282,7 @@ elif current_tab == "🗣️ 口說":
             if sel:
                 q = opts[sel]
                 font_size = st.slider("🔍 字體大小", 16, 48, 24, 2)
+                # 套用藍色系背景與文字變數[cite: 5]
                 st.markdown(f"<div style='padding:20px; border-radius:12px; background:var(--theme-bg); border-left:5px solid var(--theme-accent); border: 1px solid var(--theme-card-border); color:var(--theme-text); font-size:{font_size}px;'>{q['content']}</div>", unsafe_allow_html=True)
                 st.caption(f"來源：{q.get('source', '無')} ｜ 建議時間：1.5分鐘")
             st.markdown('</div>', unsafe_allow_html=True)
@@ -313,7 +316,8 @@ elif current_tab == "🗣️ 口說":
                         st.info(f"💬 {q.get('question_amis', '')}")
                 with c2:
                     if st.toggle("👁️ 顯示中文", key=f"sqa_ch_{q_idx}"):
-                        st.markdown(f"<blockquote style='border-left: 5px solid var(--theme-success-border); background: var(--theme-bg); padding: 10px; color: var(--theme-text);'>💡 {q.get('question_ch', '')}</blockquote>", unsafe_allow_html=True)
+                        # 替換為藍色底紋的引言區塊
+                        st.markdown(f"<blockquote style='border-left: 5px solid var(--theme-accent); background: var(--theme-bg); padding: 10px; color: var(--theme-text);'>💡 {q.get('question_ch', '')}</blockquote>", unsafe_allow_html=True)
                         
                 with st.expander("📥 顯示參考答案"):
                     st.success(f"✨ **族語:**\n{q.get('suggested_answer_amis', '')}\n\n💡 **中文:**\n{q.get('suggested_answer_ch', '')}")
@@ -384,6 +388,7 @@ elif current_tab == "📖 閱讀":
             if ptr < len(db):
                 q = db[st.session_state[state_order][ptr]]
                 st.write(f"**[進度：第 {ptr + 1} 題 / 共 {len(db)} 題]**")
+                # 題目字體使用深藍灰色提升可讀性[cite: 5]
                 st.markdown(f"<p style='font-size: 20px; font-weight: 600; color: var(--theme-text);'>{q['question_text']}</p>", unsafe_allow_html=True)
                 
                 with st.form(key=f"r_form_{target_type}_{ptr}"):
@@ -446,6 +451,7 @@ elif current_tab == "✍️ 寫作":
                     with st.expander("📥 核對答案"):
                         st.success(q.get("correct_text", ""))
                 else:
+                    # 確保寫作題目使用藍色系重點色
                     st.markdown(f"#### ❓ <span style='color: var(--theme-heading);'>{q.get('question_text', '')}</span>", unsafe_allow_html=True)
                     if st.toggle("👁️ 中文提示", key=f"w_hint_{ptr}"):
                         st.info(q.get("chinese_translation", ""))

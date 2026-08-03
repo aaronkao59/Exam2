@@ -3,49 +3,39 @@ import random
 import json
 import os
 
-APP_VERSION = "v3.1.5 (Adaptive Coffee UI Edition)"
+APP_VERSION = "v3.1.6 (Pure Light Coffee UI Edition)"
 
 st.set_page_config(page_title="中高級認證", page_icon="🎓", layout="wide", initial_sidebar_state="collapsed")
 
-# 透過 CSS 變數實作自適應色彩抽離：以「純白底色」與「咖啡色字體」為核心
+# 透過 CSS 變數實作絕對純白與咖啡色字體映射，並鎖定為 Light 模式為主
 st.markdown("""
     <style>
-    /* 預設 (Light Mode) 咖啡與香草白映射 */
+    /* 強制鎖定 (Light Mode) 咖啡與香草白映射 */
     :root {
-        --theme-bg: #FFFFFF; /* 純白背景 */
-        --theme-card-bg: #FDFBF7; /* 極淺拿鐵白 - 卡片背景 */
-        --theme-card-border: #D7CCC8; /* 淺咖啡邊框 (Brown 200) */
-        --theme-text: #4E342E; /* 深咖啡色字體 (Brown 800) - 確保高對比度 */
+        --theme-bg: #FFFFFF; /* 絕對純白背景 */
+        --theme-card-bg: #FCFAF8; /* 極淺奶泡白 - 卡片背景 */
+        --theme-card-border: #D7CCC8; /* 淺拿鐵邊框 (Brown 200) */
+        --theme-text: #4E342E; /* 咖啡豆深色 (Brown 800) - 高對比度護眼 */
         --theme-heading: #3E2723; /* 極深焙咖啡標題 (Brown 900) */
         --theme-accent: #795548; /* 主題咖啡色 (Brown 500) */
         --theme-accent-hover: #5D4037; /* 懸停深咖啡 (Brown 700) */
-        --theme-success-bg: #EFEBE9; /* 淺咖啡灰提示底色 */
+        --theme-success-bg: #F5F5F5; /* 淺灰白提示底色，保持極簡 */
         --theme-success-text: #3E2723; 
         --theme-success-border: #8D6E63; 
         --theme-shadow: rgba(78, 52, 46, 0.08); /* 咖啡色調的柔和陰影 */
     }
 
-    /* 深色模式 (Dark Mode) 映射：反轉為深黑咖啡底色與奶油白字體，保護夜間閱讀 */
+    /* 覆蓋 Streamlit 預設的所有深色模式，強制介面維持白底咖啡字 */
     @media (prefers-color-scheme: dark) {
-        :root {
-            --theme-bg: #1E1A18; /* 深黑咖啡背景 */
-            --theme-card-bg: #2D241F; /* 深棕灰卡片 */
-            --theme-card-border: #4E342E; /* 深棕邊框 */
-            --theme-text: #EFEBE9; /* 奶油拿鐵字體 */
-            --theme-heading: #D7CCC8; /* 亮拿鐵標題 */
-            --theme-accent: #A1887F; /* 柔和咖啡色 */
-            --theme-accent-hover: #D7CCC8; 
-            --theme-success-bg: #3E2723; 
-            --theme-success-text: #D7CCC8; 
-            --theme-success-border: #795548; 
-            --theme-shadow: rgba(0, 0, 0, 0.4);
+        .stApp, .stAppHeader {
+            background-color: var(--theme-bg) !important;
         }
     }
 
     /* 全域背景與文字 */
     .stApp {
-        background-color: var(--theme-bg);
-        color: var(--theme-text);
+        background-color: var(--theme-bg) !important;
+        color: var(--theme-text) !important;
     }
 
     /* 測驗卡片視覺優化 */
@@ -61,7 +51,7 @@ st.markdown("""
     /* 字體顏色強制套用咖啡色系 */
     h1, h2, h3, h4, h5, h6 { color: var(--theme-heading) !important; }
     h1 { font-weight: 800 !important; }
-    p, span, label, div { color: var(--theme-text); } 
+    p, span, label, div { color: var(--theme-text) !important; } 
 
     /* 警告框 (stAlert/stSuccess/stError) */
     .stAlert { border-radius: 14px !important; border: none !important; }
@@ -84,14 +74,14 @@ st.markdown("""
     /* 按鈕 (stButton) */
     .stButton>button {
         border-radius: 12px !important;
-        background-color: transparent;
+        background-color: transparent !important;
         border: 2px solid var(--theme-accent) !important; 
         color: var(--theme-heading) !important; 
         font-weight: 600;
         transition: all 0.2s;
     }
     .stButton>button:hover {
-        background-color: var(--theme-card-bg); 
+        background-color: var(--theme-card-bg) !important; 
         border-color: var(--theme-accent-hover) !important; 
         color: var(--theme-accent-hover) !important;
     }
@@ -118,6 +108,10 @@ st.markdown("""
     div[data-testid="stExpander"] details summary p { color: var(--theme-text) !important; font-weight: 600; }
 
     div[data-testid="stHorizontalBlock"] { background: transparent !important; border: none !important; box-shadow: none !important; }
+    
+    /* 強制輸入框背景與文字 */
+    div[data-baseweb="input"] { background-color: white !important; border-color: var(--theme-card-border) !important; }
+    div[data-baseweb="input"] input { color: var(--theme-text) !important; }
     </style>
 """, unsafe_allow_html=True)
 

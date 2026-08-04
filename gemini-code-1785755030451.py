@@ -557,7 +557,7 @@ def main():
     db = load_question_bank()
 
     if current_tab == "📜 皇家認證說明":
-        st.subheader("📜 [皇家認證考試說明](https://lokahsu.ilrdf.org.tw/web_lokahsu/Files/Guide/1_20251211_162558.pdf)")
+        st.subheader("📜 [皇家認證考試說明](https://lokahsu.ilrdf.org.tw/web_lokahsu/Files/Guide/113_3_1.pdf)")
         st.divider()
         st.info("💖 歡迎來到魔法森林！請透過上方導覽列選擇您要進行的特訓項目。系統將自動從魔法圖書館載入完整題庫，並附帶南島語系精靈的模擬發音按鈕喔！")
 

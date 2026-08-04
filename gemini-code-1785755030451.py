@@ -417,7 +417,7 @@ def render_section(section_name, db):
 # 🚀 應用程式主邏輯 (Main)
 # ==========================================
 def main():
-    st.set_page_config(page_title="中高級認證 (公主特訓版)", page_icon="👑", layout="centered", initial_sidebar_state="collapsed")
+    st.set_page_config(page_title="中高級認證 (公主特訓版)", page_icon="👑", layout="wide", initial_sidebar_state="collapsed")
 
     # 🎀 可愛卡通公主風格 (Cute Cartoon Princess Theme) CSS
     st.markdown("""

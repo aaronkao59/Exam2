@@ -255,7 +255,7 @@ def render_mcq(line, prefix, question_number):
         parts = line.split("(A)", 1)
         q_part = parts[0].strip()
         
-        # 🚀 提取題號，如果沒有找到則使用傳入的 question_number
+        # 🚀 提取題號並縫合至題目文字中
         match = re.match(r'^(\d+[\.、])\s*(.*)', q_part)
         if match:
             q_num_str = match.group(1)
@@ -272,7 +272,7 @@ def render_mcq(line, prefix, question_number):
         if "答案：" in rest:
             ans_parts = rest.split("答案：", 1)
             opts_str = ans_parts[0].strip()
-            # 🚀 修復：直接抓取整個解答區塊，不再強制以「分析：」切割，完美包容客製化文字
+            # 直接抓取整個解答區塊，不再強制以「分析：」切割
             ans_ana = ans_parts[1].strip()
             
             # 抓取標準答案選項，例如 (A)
@@ -286,17 +286,15 @@ def render_mcq(line, prefix, question_number):
         col_q, col_btn = st.columns([4, 1.5])
         
         with col_q:
-            # 讓題目保留換行排版 (Markdown soft break)
-            formatted_q = q_part.replace('\n', '  \n')
-            
-            # 顯示題號的 toggle
-            st.markdown(f"<span style='color: #0284c7; font-weight: bold; font-size: 1.2rem;'>{q_num_str}</span>", unsafe_allow_html=True)
+            # 將題號完美縫合至題目開頭
+            formatted_q = f"{q_num_str} {q_part}".replace('\n', '  \n')
             
             if is_listening:
                 if st.toggle("👁️ 顯示題目文字", key=f"t_show_q_{prefix}"):
                     st.markdown(f"**{formatted_q}**")
                 else:
-                    st.markdown("**[文字隱藏中，請點擊右方播放錄音]**")
+                    # 隱藏時依然顯示題號
+                    st.markdown(f"**{q_num_str} [文字隱藏中，請點擊右方播放錄音]**")
             else:
                 st.markdown(f"**{formatted_q}**")
                 
@@ -326,7 +324,7 @@ def render_mcq(line, prefix, question_number):
         elif user_ans and correct_opt:
             formatted_ans = ans_ana.replace('\n', '\n\n')
             if correct_opt in user_ans:
-                st.success(f"✅ 正確！\n\n{formatted_ans}")
+                st.success(f"✅ 正確！\n\n**正確答案：** {formatted_ans}")
             else:
                 st.error(f"❌ 錯誤。\n\n**正確解答參考：**\n\n{formatted_ans}")
     except Exception as e:
@@ -356,8 +354,8 @@ def render_reading(line, prefix, question_number):
         
         col_q, col_btn = st.columns([4, 1.5])
         with col_q:
-            st.markdown(f"<span style='color: #0284c7; font-weight: bold; font-size: 1.2rem;'>{q_num_str}</span>", unsafe_allow_html=True)
-            st.markdown(f"📖 **{q_part.replace(chr(10), '  '+chr(10))}**")
+            formatted_q = f"{q_num_str} 📖 {q_part}".replace('\n', '  \n')
+            st.markdown(f"**{formatted_q}**")
         with col_btn:
             if st.button("🔊 播放朗讀", key=f"tts_btn_{prefix}"):
                 play_tts(q_part.replace('\n', ' '), prefix=prefix)
@@ -411,17 +409,17 @@ def render_qa(line, prefix, question_number):
         
         col_q, col_btn = st.columns([4, 1.5])
         with col_q:
-            st.markdown(f"<span style='color: #0284c7; font-weight: bold; font-size: 1.2rem;'>{q_num_str}</span>", unsafe_allow_html=True)
+            formatted_q = f"{q_num_str} 🗣️ {q_am}".replace('\n', '  \n')
             is_situational = "情境問答" in prefix
             if is_situational:
                 if st.toggle("👁️ 顯示題目與提示", key=f"t_show_q_{prefix}"):
-                    st.markdown(f"🗣️ **{q_am.replace(chr(10), '  '+chr(10))}**")
+                    st.markdown(f"**{formatted_q}**")
                     if ch_hint:
                         st.caption(f"中文提示：{ch_hint.replace(chr(10), '  '+chr(10))}")
                 else:
-                    st.markdown("**[提示文字隱藏中]**")
+                    st.markdown(f"**{q_num_str} [提示文字隱藏中]**")
             else:
-                st.markdown(f"🗣️ **{q_am.replace(chr(10), '  '+chr(10))}**")
+                st.markdown(f"**{formatted_q}**")
                 if ch_hint:
                     st.caption(f"中文提示：{ch_hint.replace(chr(10), '  '+chr(10))}")
                     
@@ -499,8 +497,8 @@ def render_picture(line, prefix, question_number):
         except:
             pass
 
-        st.markdown(f"<span style='color: #0284c7; font-weight: bold; font-size: 1.2rem;'>{q_num_str}</span>", unsafe_allow_html=True)
-        st.markdown(f"🖼️ **圖片情境：** {pic.replace(chr(10), '  '+chr(10))}")
+        formatted_pic = f"{q_num_str} 🖼️ **圖片情境：** {pic}".replace('\n', '  \n')
+        st.markdown(formatted_pic)
         
         if hint:
             st.caption(f"中文提示：{hint.replace(chr(10), '  '+chr(10))}")
@@ -553,11 +551,11 @@ def render_dictation(line, prefix, question_number):
         col_q, col_btn = st.columns([4, 1.5])
         
         with col_q:
-            st.markdown(f"<span style='color: #0284c7; font-weight: bold; font-size: 1.2rem;'>{q_num_str}</span>", unsafe_allow_html=True)
+            formatted_q = f"{q_num_str} ✍️ {am}".replace('\n', '  \n')
             if st.toggle("👁️ 顯示聽寫原文", key=f"t_show_dict_{prefix}"):
-                st.markdown(f"✍️ **{am.replace(chr(10), '  '+chr(10))}**")
+                st.markdown(f"**{formatted_q}**")
             else:
-                st.markdown("**[原文隱藏中，請點擊右側按鈕進行聽寫測試]**")
+                st.markdown(f"**{q_num_str} [原文隱藏中，請點擊右側按鈕進行聽寫測試]**")
                 
         with col_btn:
             if st.button("🔊 播放聽寫語音", key=f"tts_btn_{prefix}"):
@@ -726,4 +724,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```[cite: 5]

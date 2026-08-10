@@ -245,7 +245,7 @@ def load_question_bank():
 # ==========================================
 # 🎨 UI 渲染邏輯 (結合海洋風格與動態發音)
 # ==========================================
-def render_mcq(line, prefix):
+def render_mcq(line, prefix, question_number):
     """渲染選擇題 (海洋風格動態語音按鈕與卡片)"""
     try:
         if "(A)" not in line:
@@ -254,6 +254,15 @@ def render_mcq(line, prefix):
 
         parts = line.split("(A)", 1)
         q_part = parts[0].strip()
+        
+        # 🚀 提取題號，如果沒有找到則使用傳入的 question_number
+        match = re.match(r'^(\d+[\.、])\s*(.*)', q_part)
+        if match:
+            q_num_str = match.group(1)
+            q_part = match.group(2)
+        else:
+            q_num_str = f"{question_number}."
+            
         rest = "(A)" + parts[1]
         
         opts_str = rest
@@ -279,6 +288,10 @@ def render_mcq(line, prefix):
         with col_q:
             # 讓題目保留換行排版 (Markdown soft break)
             formatted_q = q_part.replace('\n', '  \n')
+            
+            # 顯示題號的 toggle
+            st.markdown(f"<span style='color: #0284c7; font-weight: bold; font-size: 1.2rem;'>{q_num_str}</span>", unsafe_allow_html=True)
+            
             if is_listening:
                 if st.toggle("👁️ 顯示題目文字", key=f"t_show_q_{prefix}"):
                     st.markdown(f"**{formatted_q}**")
@@ -319,22 +332,31 @@ def render_mcq(line, prefix):
     except Exception as e:
         st.info(line) 
 
-def render_reading(line, prefix):
+def render_reading(line, prefix, question_number):
     """渲染段落朗讀"""
     try:
         q_part = line
         ch_part = ""
-        if "(中文：" in line:
-            parts = line.split("(中文：", 1)
+        
+        match = re.match(r'^(\d+[\.、])\s*(.*)', q_part)
+        if match:
+            q_num_str = match.group(1)
+            q_part = match.group(2)
+        else:
+            q_num_str = f"{question_number}."
+            
+        if "(中文：" in q_part:
+            parts = q_part.split("(中文：", 1)
             q_part = parts[0].strip()
             ch_part = parts[1].strip(")")
-        elif "(中文大意：" in line:
-            parts = line.split("(中文大意：", 1)
+        elif "(中文大意：" in q_part:
+            parts = q_part.split("(中文大意：", 1)
             q_part = parts[0].strip()
             ch_part = parts[1].strip(")")
         
         col_q, col_btn = st.columns([4, 1.5])
         with col_q:
+            st.markdown(f"<span style='color: #0284c7; font-weight: bold; font-size: 1.2rem;'>{q_num_str}</span>", unsafe_allow_html=True)
             st.markdown(f"📖 **{q_part.replace(chr(10), '  '+chr(10))}**")
         with col_btn:
             if st.button("🔊 播放朗讀", key=f"tts_btn_{prefix}"):
@@ -346,7 +368,7 @@ def render_reading(line, prefix):
     except:
         st.info(line)
 
-def render_qa(line, prefix):
+def render_qa(line, prefix, question_number):
     """渲染問答與情境問答"""
     try:
         text = line
@@ -354,6 +376,14 @@ def render_qa(line, prefix):
         ch_hint = ""
         ans = ""
         ana = ""
+        
+        match = re.match(r'^(\d+[\.、])\s*(.*)', q_am)
+        if match:
+            q_num_str = match.group(1)
+            q_am = match.group(2)
+            text = q_am
+        else:
+            q_num_str = f"{question_number}."
         
         if "中文：" in text:
             parts = text.split("中文：", 1)
@@ -381,6 +411,7 @@ def render_qa(line, prefix):
         
         col_q, col_btn = st.columns([4, 1.5])
         with col_q:
+            st.markdown(f"<span style='color: #0284c7; font-weight: bold; font-size: 1.2rem;'>{q_num_str}</span>", unsafe_allow_html=True)
             is_situational = "情境問答" in prefix
             if is_situational:
                 if st.toggle("👁️ 顯示題目與提示", key=f"t_show_q_{prefix}"):
@@ -410,7 +441,7 @@ def render_qa(line, prefix):
     except:
         st.info(line)
 
-def render_picture(line, prefix):
+def render_picture(line, prefix, question_number):
     """渲染看圖表達，並支援動態載入對應題號圖片"""
     try:
         text = line
@@ -419,6 +450,14 @@ def render_picture(line, prefix):
         ans = ""
         ana = ""
         
+        match = re.match(r'^(\d+[\.、])\s*(.*)', pic)
+        if match:
+            q_num_str = match.group(1)
+            pic = match.group(2)
+            text = pic
+        else:
+            q_num_str = f"{question_number}."
+            
         if "圖片情境：" in text:
             parts = text.split("圖片情境：", 1)
             pic = parts[1]
@@ -460,6 +499,7 @@ def render_picture(line, prefix):
         except:
             pass
 
+        st.markdown(f"<span style='color: #0284c7; font-weight: bold; font-size: 1.2rem;'>{q_num_str}</span>", unsafe_allow_html=True)
         st.markdown(f"🖼️ **圖片情境：** {pic.replace(chr(10), '  '+chr(10))}")
         
         if hint:
@@ -480,7 +520,7 @@ def render_picture(line, prefix):
     except:
         st.info(line)
 
-def render_dictation(line, prefix):
+def render_dictation(line, prefix, question_number):
     """渲染句子聽寫"""
     try:
         text = line
@@ -488,6 +528,14 @@ def render_dictation(line, prefix):
         ch = ""
         ana = ""
         
+        match = re.match(r'^(\d+[\.、])\s*(.*)', am)
+        if match:
+            q_num_str = match.group(1)
+            am = match.group(2)
+            text = am
+        else:
+            q_num_str = f"{question_number}."
+            
         if "中文：" in text:
             parts = text.split("中文：", 1)
             am = parts[0].replace("阿美語：", "").strip()
@@ -505,6 +553,7 @@ def render_dictation(line, prefix):
         col_q, col_btn = st.columns([4, 1.5])
         
         with col_q:
+            st.markdown(f"<span style='color: #0284c7; font-weight: bold; font-size: 1.2rem;'>{q_num_str}</span>", unsafe_allow_html=True)
             if st.toggle("👁️ 顯示聽寫原文", key=f"t_show_dict_{prefix}"):
                 st.markdown(f"✍️ **{am.replace(chr(10), '  '+chr(10))}**")
             else:
@@ -531,18 +580,19 @@ def render_section(section_name, db):
         return
 
     for i, line in enumerate(questions):
+        question_number = i + 1 
         # 🚀 優化：使用 Streamlit 內建的 border 容器，強制每題獨立
         with st.container(border=True):
             if "聽音選詞" in section_name or "對話理解" in section_name or section_name in ["詞彙語意", "語言結構"]:
-                render_mcq(line, f"{section_name}_{i}")
+                render_mcq(line, f"{section_name}_{i}", question_number)
             elif section_name == "段落朗讀":
-                render_reading(line, f"{section_name}_{i}")
+                render_reading(line, f"{section_name}_{i}", question_number)
             elif section_name in ["情境問答", "問答"]:
-                render_qa(line, f"{section_name}_{i}")
+                render_qa(line, f"{section_name}_{i}", question_number)
             elif section_name == "看圖表達":
-                render_picture(line, f"{section_name}_{i}")
+                render_picture(line, f"{section_name}_{i}", question_number)
             elif section_name == "句子聽寫":
-                render_dictation(line, f"{section_name}_{i}")
+                render_dictation(line, f"{section_name}_{i}", question_number)
 
 # ==========================================
 # 🚀 應用程式主邏輯 (Main)
@@ -676,3 +726,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+```[cite: 5]

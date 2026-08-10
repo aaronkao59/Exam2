@@ -204,7 +204,8 @@ def load_question_bank():
 
     def save_question():
         if current_section and current_question:
-            q_text = " ".join(current_question).strip()
+            # 🚀 修復：改用 "\n" 連接，保留所有排版斷行，避免後續解析把換行吃掉
+            q_text = "\n".join(current_question).strip()
             if re.match(r'^\d+[\.、]', q_text):
                 db[current_section].append(q_text)
             current_question.clear()
@@ -256,36 +257,40 @@ def render_mcq(line, prefix):
         rest = "(A)" + parts[1]
         
         opts_str = rest
-        ans_str = ""
-        ana_str = ""
+        ans_ana = ""
+        correct_opt = ""
         
         if "答案：" in rest:
             ans_parts = rest.split("答案：", 1)
             opts_str = ans_parts[0].strip()
-            ans_ana = ans_parts[1]
+            # 🚀 修復：直接抓取整個解答區塊，不再強制以「分析：」切割，完美包容客製化文字
+            ans_ana = ans_parts[1].strip()
             
-            if "分析：" in ans_ana:
-                final_parts = ans_ana.split("分析：", 1)
-                ans_str = final_parts[0].strip("。 ")
-                ana_str = final_parts[1].strip()
+            # 抓取標準答案選項，例如 (A)
+            match = re.search(r'\([A-D]\)', ans_ana)
+            if match:
+                correct_opt = match.group(0)
             else:
-                ans_str = ans_ana.strip("。 ")
+                correct_opt = ans_ana.split()[0] if ans_ana else ""
 
         is_listening = "聽音選詞" in prefix or "對話理解" in prefix
         col_q, col_btn = st.columns([4, 1.5])
         
         with col_q:
+            # 讓題目保留換行排版 (Markdown soft break)
+            formatted_q = q_part.replace('\n', '  \n')
             if is_listening:
                 if st.toggle("👁️ 顯示題目文字", key=f"t_show_q_{prefix}"):
-                    st.markdown(f"**{q_part}**")
+                    st.markdown(f"**{formatted_q}**")
                 else:
                     st.markdown("**[文字隱藏中，請點擊右方播放錄音]**")
             else:
-                st.markdown(f"**{q_part}**")
+                st.markdown(f"**{formatted_q}**")
                 
         with col_btn:
             if st.button("🔊 播放發音", key=f"tts_btn_{prefix}"):
-                play_tts(q_part, prefix=prefix)
+                # 播放時過濾掉換行符號
+                play_tts(q_part.replace('\n', ' '), prefix=prefix)
         
         opts = []
         for tag in ["(A)", "(B)", "(C)", "(D)"]:
@@ -294,22 +299,23 @@ def render_mcq(line, prefix):
                 for next_tag in ["(B)", "(C)", "(D)"]:
                     if next_tag > tag and next_tag in opt_text:
                         opt_text = opt_text.split(next_tag, 1)[0]
-                opts.append(tag + " " + opt_text.strip())
+                opts.append(tag + " " + opt_text.strip().replace('\n', ' '))
 
         user_ans = st.radio("請選擇：", opts, index=None, key=prefix)
         
         if st.toggle("💡 顯示解答與分析", key=f"t_ans_{prefix}"):
-            if ans_str:
-                msg = f"**正確答案：** {ans_str}"
-                if ana_str: msg += f"\n\n**分析：** {ana_str}"
-                st.success(msg)
+            if ans_ana:
+                # 替換單一換行為 markdown 的雙換行，確保垂直排版與使用者設計一致
+                formatted_ans = ans_ana.replace('\n', '\n\n')
+                st.success(f"**正確答案：** {formatted_ans}")
             else:
                 st.warning("無標準答案。")
-        elif user_ans and ans_str:
-            if ans_str in user_ans:
-                st.success(f"✅ 正確！" + (f"分析：{ana_str}" if ana_str else ""))
+        elif user_ans and correct_opt:
+            formatted_ans = ans_ana.replace('\n', '\n\n')
+            if correct_opt in user_ans:
+                st.success(f"✅ 正確！\n\n{formatted_ans}")
             else:
-                st.error(f"❌ 錯誤。正確答案：{ans_str}。" + (f"分析：{ana_str}" if ana_str else ""))
+                st.error(f"❌ 錯誤。\n\n**正確解答參考：**\n\n{formatted_ans}")
     except Exception as e:
         st.info(line) 
 
@@ -329,14 +335,14 @@ def render_reading(line, prefix):
         
         col_q, col_btn = st.columns([4, 1.5])
         with col_q:
-            st.markdown(f"📖 **{q_part}**")
+            st.markdown(f"📖 **{q_part.replace(chr(10), '  '+chr(10))}**")
         with col_btn:
             if st.button("🔊 播放朗讀", key=f"tts_btn_{prefix}"):
-                play_tts(q_part, prefix=prefix)
+                play_tts(q_part.replace('\n', ' '), prefix=prefix)
                 
         if ch_part:
             if st.toggle("💡 顯示中文翻譯", key=f"t_{prefix}"):
-                st.success(ch_part)
+                st.success(ch_part.replace('\n', '\n\n'))
     except:
         st.info(line)
 
@@ -378,29 +384,29 @@ def render_qa(line, prefix):
             is_situational = "情境問答" in prefix
             if is_situational:
                 if st.toggle("👁️ 顯示題目與提示", key=f"t_show_q_{prefix}"):
-                    st.markdown(f"🗣️ **{q_am}**")
+                    st.markdown(f"🗣️ **{q_am.replace(chr(10), '  '+chr(10))}**")
                     if ch_hint:
-                        st.caption(f"中文提示：{ch_hint}")
+                        st.caption(f"中文提示：{ch_hint.replace(chr(10), '  '+chr(10))}")
                 else:
                     st.markdown("**[提示文字隱藏中]**")
             else:
-                st.markdown(f"🗣️ **{q_am}**")
+                st.markdown(f"🗣️ **{q_am.replace(chr(10), '  '+chr(10))}**")
                 if ch_hint:
-                    st.caption(f"中文提示：{ch_hint}")
+                    st.caption(f"中文提示：{ch_hint.replace(chr(10), '  '+chr(10))}")
                     
         with col_btn:
             if st.button("🔊 聽取問句", key=f"tts_btn_{prefix}"):
-                play_tts(q_am, prefix=prefix)
+                play_tts(q_am.replace('\n', ' '), prefix=prefix)
             
         if ans or ana:
             if st.toggle("💡 顯示參考解答", key=f"t_{prefix}"):
                 msg = ""
-                if ans: msg += f"參考解答：{ans}"
-                if ana: msg += f"\n\n分析：{ana}"
+                if ans: msg += f"參考解答：{ans.replace(chr(10), chr(10)+chr(10))}"
+                if ana: msg += f"\n\n分析：{ana.replace(chr(10), chr(10)+chr(10))}"
                 st.success(msg)
                 if ans:
                     if st.button("🔊 播放解答發音", key=f"tts_ans_{prefix}"):
-                        play_tts(ans, prefix=prefix, is_ans=True)
+                        play_tts(ans.replace('\n', ' '), prefix=prefix, is_ans=True)
     except:
         st.info(line)
 
@@ -454,23 +460,23 @@ def render_picture(line, prefix):
         except:
             pass
 
-        st.markdown(f"🖼️ **圖片情境：** {pic}")
+        st.markdown(f"🖼️ **圖片情境：** {pic.replace(chr(10), '  '+chr(10))}")
         
         if hint:
-            st.caption(f"中文提示：{hint}")
+            st.caption(f"中文提示：{hint.replace(chr(10), '  '+chr(10))}")
             
         st.text_area("請在此作答：", key=f"input_{prefix}", label_visibility="collapsed", placeholder="可以在此輸入您的口說草稿...")
             
         if ans or ana:
             if st.toggle("💡 顯示作答參考", key=f"t_{prefix}"):
                 msg = ""
-                if ans: msg += f"作答參考：{ans}"
-                if ana: msg += f"\n\n重點：{ana}"
+                if ans: msg += f"作答參考：{ans.replace(chr(10), chr(10)+chr(10))}"
+                if ana: msg += f"\n\n重點：{ana.replace(chr(10), chr(10)+chr(10))}"
                 st.success(msg)
                 
                 if ans:
                     if st.button("🔊 發音作答參考", key=f"tts_ans_{prefix}"):
-                        play_tts(ans, prefix=prefix, is_ans=True)
+                        play_tts(ans.replace('\n', ' '), prefix=prefix, is_ans=True)
     except:
         st.info(line)
 
@@ -500,19 +506,19 @@ def render_dictation(line, prefix):
         
         with col_q:
             if st.toggle("👁️ 顯示聽寫原文", key=f"t_show_dict_{prefix}"):
-                st.markdown(f"✍️ **{am}**")
+                st.markdown(f"✍️ **{am.replace(chr(10), '  '+chr(10))}**")
             else:
                 st.markdown("**[原文隱藏中，請點擊右側按鈕進行聽寫測試]**")
                 
         with col_btn:
             if st.button("🔊 播放聽寫語音", key=f"tts_btn_{prefix}"):
-                play_tts(am, prefix=prefix)
+                play_tts(am.replace('\n', ' '), prefix=prefix)
             
         if ch or ana:
             if st.toggle("💡 顯示翻譯與分析", key=f"t_{prefix}"):
                 msg = ""
-                if ch: msg += f"中文：{ch}"
-                if ana: msg += f"\n\n分析：{ana}"
+                if ch: msg += f"中文：{ch.replace(chr(10), chr(10)+chr(10))}"
+                if ana: msg += f"\n\n分析：{ana.replace(chr(10), chr(10)+chr(10))}"
                 st.success(msg)
     except:
         st.info(line)
@@ -525,7 +531,7 @@ def render_section(section_name, db):
         return
 
     for i, line in enumerate(questions):
-        # 🚀 優化：使用 Streamlit 內建的 border 容器，強制每題獨立，取代容易出錯的 HTML div
+        # 🚀 優化：使用 Streamlit 內建的 border 容器，強制每題獨立
         with st.container(border=True):
             if "聽音選詞" in section_name or "對話理解" in section_name or section_name in ["詞彙語意", "語言結構"]:
                 render_mcq(line, f"{section_name}_{i}")

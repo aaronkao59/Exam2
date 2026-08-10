@@ -226,8 +226,13 @@ def load_question_bank():
         elif "九、問答" in line: save_question(); current_section = "問答"
         
         elif re.match(r'^\d+[\.、]', line):
-            save_question()
-            current_question.append(line)
+            # 🚀 智能修復：判斷是否已經進入答案或分析區塊，避免將分析內的「1. 句法分析」誤判為新題目而切斷
+            is_in_analysis = any("答案：" in q for q in current_question) or any("分析：" in q for q in current_question)
+            if is_in_analysis:
+                current_question.append(line)
+            else:
+                save_question()
+                current_question.append(line)
         else:
             if current_question:
                 current_question.append(line)
@@ -520,8 +525,8 @@ def render_section(section_name, db):
         return
 
     for i, line in enumerate(questions):
-        with st.container():
-            st.markdown('<div class="quiz-card">', unsafe_allow_html=True)
+        # 🚀 優化：使用 Streamlit 內建的 border 容器，強制每題獨立，取代容易出錯的 HTML div
+        with st.container(border=True):
             if "聽音選詞" in section_name or "對話理解" in section_name or section_name in ["詞彙語意", "語言結構"]:
                 render_mcq(line, f"{section_name}_{i}")
             elif section_name == "段落朗讀":
@@ -532,7 +537,6 @@ def render_section(section_name, db):
                 render_picture(line, f"{section_name}_{i}")
             elif section_name == "句子聽寫":
                 render_dictation(line, f"{section_name}_{i}")
-            st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 🚀 應用程式主邏輯 (Main)
@@ -559,21 +563,21 @@ def main():
         color: #0284c7 !important;
     }
     
-    /* 海洋風題庫卡片 */
-    .quiz-card {
+    /* 海洋風題庫卡片 - 直接綁定 Streamlit 內建 Border 容器 */
+    [data-testid="stVerticalBlockBorderWrapper"] {
         background: #ffffff;
-        padding: 24px;
         border-radius: 16px;
-        border-left: 6px solid #0284c7;
+        border-left: 6px solid #0284c7 !important;
         border-top: 1px solid #bae6fd;
         border-right: 1px solid #bae6fd;
         border-bottom: 1px solid #bae6fd;
         box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.08), 0 8px 10px -6px rgba(2, 132, 199, 0.04);
         margin-top: 18px;
         margin-bottom: 25px;
+        padding: 10px; /* 優化間距避免太擁擠 */
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .quiz-card:hover {
+    [data-testid="stVerticalBlockBorderWrapper"]:hover {
         transform: translateY(-2px);
         box-shadow: 0 12px 28px -5px rgba(2, 132, 199, 0.15);
     }

@@ -272,15 +272,17 @@ def render_mcq(line, prefix, question_number):
         if "答案：" in rest:
             ans_parts = rest.split("答案：", 1)
             opts_str = ans_parts[0].strip()
-            # 直接抓取整個解答區塊，不再強制以「分析：」切割
-            ans_ana = ans_parts[1].strip()
+            # 🚀 修正：刪除包含 "正確答案： (A)" 這種冗餘的文字，只保留核心解析
+            raw_ans_text = ans_parts[1].strip()
+            # 利用 Regex 移除 "正確答案： (X)" 這樣的開頭
+            ans_ana = re.sub(r'^(正確)?答案：?\s*\([A-D]\)\s*', '', raw_ans_text)
             
             # 抓取標準答案選項，例如 (A)
-            match = re.search(r'\([A-D]\)', ans_ana)
+            match = re.search(r'\([A-D]\)', raw_ans_text)
             if match:
                 correct_opt = match.group(0)
             else:
-                correct_opt = ans_ana.split()[0] if ans_ana else ""
+                correct_opt = raw_ans_text.split()[0] if raw_ans_text else ""
 
         is_listening = "聽音選詞" in prefix or "對話理解" in prefix
         col_q, col_btn = st.columns([4, 1.5])
@@ -312,20 +314,18 @@ def render_mcq(line, prefix, question_number):
                         opt_text = opt_text.split(next_tag, 1)[0]
                 opts.append(tag + " " + opt_text.strip().replace('\n', ' '))
 
+        # 🚀 修改：將 radio button 設為必選題的樣子，不使用 "顯示解答與分析" 開關
         user_ans = st.radio("請選擇：", opts, index=None, key=prefix)
         
-        if st.toggle("💡 顯示解答與分析", key=f"t_ans_{prefix}"):
-            if ans_ana:
-                formatted_ans = ans_ana.replace('\n', '\n\n')
-                if user_ans and correct_opt:
-                    if correct_opt in user_ans:
-                        st.success(f"✅ 正確！\n\n{formatted_ans}")
-                    else:
-                        st.error(f"❌ 錯誤。")
-                else:
-                    st.info("請先作答。")
+        # 🚀 核心邏輯：作答後才顯示結果，對了才顯示解析
+        if user_ans:
+            formatted_ans = ans_ana.replace('\n', '\n\n')
+            if correct_opt and correct_opt in user_ans:
+                # 答對：顯示綠勾勾，不再重複顯示 "正確答案 (A)"，直接顯示解析
+                st.success(f"✅ 正確！\n\n{formatted_ans}")
             else:
-                st.warning("無標準答案。")
+                # 答錯：只顯示紅叉叉，不給答案也不給解析
+                st.error(f"❌ 錯誤。")
     except Exception as e:
         st.info(line) 
 

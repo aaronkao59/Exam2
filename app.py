@@ -204,7 +204,6 @@ def load_question_bank():
 
     def save_question():
         if current_section and current_question:
-            # 🚀 修復：改用 "\n" 連接，保留所有排版斷行，避免後續解析把換行吃掉
             q_text = "\n".join(current_question).strip()
             if re.match(r'^\d+[\.、]', q_text):
                 db[current_section].append(q_text)
@@ -227,7 +226,6 @@ def load_question_bank():
         elif "九、問答" in line: save_question(); current_section = "問答"
         
         elif re.match(r'^\d+[\.、]', line):
-            # 🚀 智能修復：判斷是否已經進入答案或分析區塊，避免將分析內的「1. 句法分析」誤判為新題目而切斷
             is_in_analysis = any("答案：" in q for q in current_question) or any("分析：" in q for q in current_question)
             if is_in_analysis:
                 current_question.append(line)
@@ -255,7 +253,6 @@ def render_mcq(line, prefix, question_number, is_listen_word=False):
         parts = line.split("(A)", 1)
         q_part = parts[0].strip()
         
-        # 🚀 提取題號並縫合至題目文字中
         match = re.match(r'^(\d+[\.、])\s*(.*)', q_part)
         if match:
             q_num_str = match.group(1)
@@ -296,21 +293,18 @@ def render_mcq(line, prefix, question_number, is_listen_word=False):
         col_q, col_btn = st.columns([4, 1.5])
         
         with col_q:
-            # 將題號完美縫合至題目開頭
             formatted_q = f"{q_num_str} {q_part}".replace('\n', '  \n')
             
             if is_listening:
                 if st.toggle("👁️ 顯示題目文字", key=f"t_show_q_{prefix}"):
                     st.markdown(f"**{formatted_q}**")
                 else:
-                    # 隱藏時依然顯示題號
                     st.markdown(f"**{q_num_str} [文字隱藏中，請點擊右方播放錄音]**")
             else:
                 st.markdown(f"**{formatted_q}**")
                 
         with col_btn:
             if st.button("🔊 播放發音", key=f"tts_btn_{prefix}"):
-                # 播放時過濾掉換行符號
                 play_tts(q_part.replace('\n', ' '), prefix=prefix)
         
         # 🚀 抽取選項內容
@@ -359,7 +353,14 @@ def render_mcq(line, prefix, question_number, is_listen_word=False):
             # 驗證邏輯
             if user_ans:
                 formatted_ans = ans_ana.replace('\n', '\n\n')
-                if correct_answer_text and correct_answer_text in user_ans:
+                # 🚀 修復：將原本的 `in` 比對，改為先從 user_ans 剝除 "(A) " 等前綴，再進行絕對精準的 `==` 比對
+                # 取出使用者選擇的純文字部分 (例如將 "(A) 'alo" 轉為 "'alo")
+                user_selected_text = ""
+                match_user_opt = re.match(r'^\([A-D]\)\s*(.*)', user_ans)
+                if match_user_opt:
+                    user_selected_text = match_user_opt.group(1).strip()
+
+                if correct_answer_text and user_selected_text == correct_answer_text:
                     st.success(f"✅ 正確！\n\n{formatted_ans}")
                 else:
                     st.error(f"❌ 錯誤。")

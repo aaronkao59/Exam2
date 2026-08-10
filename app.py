@@ -13,7 +13,7 @@ except ImportError:
     HAS_GTTS = False
 
 # 🚀 全域系統版本號 - 海洋風格版
-APP_VERSION = "v2.3.1-Ocean (Build 20260811 - Shuffle Edition)"
+APP_VERSION = "v2.3.2-Ocean (Build 20260811 - Shuffle Edition)"
 
 # ==========================================
 # 🛡️ 防腐層：保留指定的原始結構與函數
@@ -204,6 +204,7 @@ def load_question_bank():
 
     def save_question():
         if current_section and current_question:
+            # 🚀 修復：改用 "\n" 連接，保留所有排版斷行，避免後續解析把換行吃掉
             q_text = "\n".join(current_question).strip()
             if re.match(r'^\d+[\.、]', q_text):
                 db[current_section].append(q_text)
@@ -226,6 +227,7 @@ def load_question_bank():
         elif "九、問答" in line: save_question(); current_section = "問答"
         
         elif re.match(r'^\d+[\.、]', line):
+            # 🚀 智能修復：判斷是否已經進入答案或分析區塊，避免將分析內的「1. 句法分析」誤判為新題目而切斷
             is_in_analysis = any("答案：" in q for q in current_question) or any("分析：" in q for q in current_question)
             if is_in_analysis:
                 current_question.append(line)
@@ -253,6 +255,7 @@ def render_mcq(line, prefix, question_number, is_listen_word=False):
         parts = line.split("(A)", 1)
         q_part = parts[0].strip()
         
+        # 🚀 提取題號並縫合至題目文字中
         match = re.match(r'^(\d+[\.、])\s*(.*)', q_part)
         if match:
             q_num_str = match.group(1)
@@ -264,6 +267,7 @@ def render_mcq(line, prefix, question_number, is_listen_word=False):
         
         opts_str = rest
         ans_ana = ""
+        correct_opt = ""
         correct_opt_letter = ""
         
         if "答案：" in rest:
@@ -271,30 +275,42 @@ def render_mcq(line, prefix, question_number, is_listen_word=False):
             opts_str = ans_parts[0].strip()
             raw_ans_text = ans_parts[1].strip()
             
-            # 抓出原本標記正確的字母選項 (如 (A))
-            match_letter = re.search(r'\([A-D]\)', raw_ans_text)
-            if match_letter:
-                correct_opt_letter = match_letter.group(0)
-            
-            # 清理冗餘文字，保留純解析
-            ans_ana = re.sub(r'^(正確)?答案：?\s*\([A-D]\)\s*', '', raw_ans_text)
+            if is_listen_word:
+                # 抓出原本標記正確的字母選項 (如 (A))
+                match_letter = re.search(r'\([A-D]\)', raw_ans_text)
+                if match_letter:
+                    correct_opt_letter = match_letter.group(0)
+                
+                # 聽音選詞專用：清理冗餘文字，保留純解析
+                ans_ana = re.sub(r'^(正確)?答案：?\s*\([A-D]\)\s*', '', raw_ans_text)
+            else:
+                # 保持其他題型的原始邏輯
+                ans_ana = raw_ans_text
+                match_letter = re.search(r'\([A-D]\)', ans_ana)
+                if match_letter:
+                    correct_opt = match_letter.group(0)
+                else:
+                    correct_opt = ans_ana.split()[0] if ans_ana else ""
 
         is_listening = "聽音選詞" in prefix or "對話理解" in prefix
         col_q, col_btn = st.columns([4, 1.5])
         
         with col_q:
+            # 將題號完美縫合至題目開頭
             formatted_q = f"{q_num_str} {q_part}".replace('\n', '  \n')
             
             if is_listening:
                 if st.toggle("👁️ 顯示題目文字", key=f"t_show_q_{prefix}"):
                     st.markdown(f"**{formatted_q}**")
                 else:
+                    # 隱藏時依然顯示題號
                     st.markdown(f"**{q_num_str} [文字隱藏中，請點擊右方播放錄音]**")
             else:
                 st.markdown(f"**{formatted_q}**")
                 
         with col_btn:
             if st.button("🔊 播放發音", key=f"tts_btn_{prefix}"):
+                # 播放時過濾掉換行符號
                 play_tts(q_part.replace('\n', ' '), prefix=prefix)
         
         # 🚀 抽取選項內容
@@ -305,45 +321,64 @@ def render_mcq(line, prefix, question_number, is_listen_word=False):
                 for next_tag in ["(B)", "(C)", "(D)"]:
                     if next_tag > tag and next_tag in opt_text:
                         opt_text = opt_text.split(next_tag, 1)[0]
-                # 儲存純文字 (去除 A,B,C,D 標籤) 以便打亂
-                raw_options.append({"original_tag": tag, "text": opt_text.strip().replace('\n', ' ')})
+                
+                if is_listen_word:
+                    # 儲存純文字以便打亂
+                    raw_options.append({"original_tag": tag, "text": opt_text.strip().replace('\n', ' ')})
+                else:
+                    # 原本邏輯直接儲存
+                    raw_options.append(tag + " " + opt_text.strip().replace('\n', ' '))
 
-        # 🚀 鎖定正確答案的實際文字內容 (這樣打亂後才知道對錯)
-        correct_answer_text = ""
-        if correct_opt_letter:
-            for opt in raw_options:
-                if opt["original_tag"] == correct_opt_letter:
-                    correct_answer_text = opt["text"]
-                    break
+        if is_listen_word:
+            # 🚀 聽音選詞專屬邏輯：洗牌選項、隱藏開關、自定義答錯回饋
+            correct_answer_text = ""
+            if correct_opt_letter:
+                for opt in raw_options:
+                    if opt["original_tag"] == correct_opt_letter:
+                        correct_answer_text = opt["text"]
+                        break
 
-        # 🚀 執行亂數洗牌 (僅針對聽音選詞)
-        if is_listen_word and len(raw_options) > 1:
-            # 使用 session_state 來記住洗牌結果，避免每次點擊 UI 就重新洗牌
-            shuffle_key = f"shuffled_opts_{prefix}"
-            if shuffle_key not in st.session_state:
-                random.shuffle(raw_options)
-                st.session_state[shuffle_key] = raw_options
-            else:
-                raw_options = st.session_state[shuffle_key]
+            # 執行亂數洗牌
+            if len(raw_options) > 1:
+                shuffle_key = f"shuffled_opts_{prefix}"
+                if shuffle_key not in st.session_state:
+                    random.shuffle(raw_options)
+                    st.session_state[shuffle_key] = raw_options
+                else:
+                    raw_options = st.session_state[shuffle_key]
 
-        # 🚀 重新套上 A,B,C,D 顯示標籤
-        display_options = []
-        display_tags = ["(A)", "(B)", "(C)", "(D)"]
-        for idx, opt in enumerate(raw_options):
-            if idx < len(display_tags):
-                display_options.append(f"{display_tags[idx]} {opt['text']}")
+            display_options = []
+            display_tags = ["(A)", "(B)", "(C)", "(D)"]
+            for idx, opt in enumerate(raw_options):
+                if idx < len(display_tags):
+                    display_options.append(f"{display_tags[idx]} {opt['text']}")
 
-        # UI 選擇元件
-        user_ans = st.radio("請選擇：", display_options, index=None, key=prefix)
-        
-        # 驗證邏輯
-        if user_ans:
-            formatted_ans = ans_ana.replace('\n', '\n\n')
-            # 檢查使用者選的選項文字中，是否包含我們鎖定的正確答案文字
-            if correct_answer_text and correct_answer_text in user_ans:
-                st.success(f"✅ 正確！\n\n{formatted_ans}")
-            else:
-                st.error(f"❌ 錯誤。")
+            # UI 選擇元件 (不包含顯示解答開關)
+            user_ans = st.radio("請選擇：", display_options, index=None, key=prefix)
+            
+            # 驗證邏輯
+            if user_ans:
+                formatted_ans = ans_ana.replace('\n', '\n\n')
+                if correct_answer_text and correct_answer_text in user_ans:
+                    st.success(f"✅ 正確！\n\n{formatted_ans}")
+                else:
+                    st.error(f"❌ 錯誤。")
+        else:
+            # 🚀 非聽音選詞邏輯 (完全保留原有行為：不洗牌、保留解答開關、提供完整提示)
+            user_ans = st.radio("請選擇：", raw_options, index=None, key=prefix)
+            
+            if st.toggle("💡 顯示解答與分析", key=f"t_ans_{prefix}"):
+                if ans_ana:
+                    formatted_ans = ans_ana.replace('\n', '\n\n')
+                    st.success(f"**正確答案：** {formatted_ans}")
+                else:
+                    st.warning("無標準答案。")
+            elif user_ans and correct_opt:
+                formatted_ans = ans_ana.replace('\n', '\n\n')
+                if correct_opt in user_ans:
+                    st.success(f"✅ 正確！\n\n**正確答案：** {formatted_ans}")
+                else:
+                    st.error(f"❌ 錯誤。\n\n**正確解答參考：**\n\n{formatted_ans}")
                 
     except Exception as e:
         st.info(line) 

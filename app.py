@@ -316,17 +316,16 @@ def render_mcq(line, prefix, question_number):
         
         if st.toggle("💡 顯示解答與分析", key=f"t_ans_{prefix}"):
             if ans_ana:
-                # 替換單一換行為 markdown 的雙換行，確保垂直排版與使用者設計一致
                 formatted_ans = ans_ana.replace('\n', '\n\n')
-                st.success(f"**正確答案：** {formatted_ans}")
+                if user_ans and correct_opt:
+                    if correct_opt in user_ans:
+                        st.success(f"✅ 正確！\n\n{formatted_ans}")
+                    else:
+                        st.error(f"❌ 錯誤。")
+                else:
+                    st.info("請先作答。")
             else:
                 st.warning("無標準答案。")
-        elif user_ans and correct_opt:
-            formatted_ans = ans_ana.replace('\n', '\n\n')
-            if correct_opt in user_ans:
-                st.success(f"✅ 正確！\n\n**正確答案：** {formatted_ans}")
-            else:
-                st.error(f"❌ 錯誤。\n\n**正確解答參考：**\n\n{formatted_ans}")
     except Exception as e:
         st.info(line) 
 

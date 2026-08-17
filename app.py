@@ -600,8 +600,8 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    st.title("🌊 阿美語中高級認證 (Riyar Ocean Edition)")
-    st.caption("🌊 「’Aray to riyar」—— 感受太平洋海風的阿美族語學習之旅")
+    st.title("🌊 阿美語中高級認證")
+    st.caption("🌊  感受太平洋海風的阿美族語學習之旅")
 
     main_options = ["📋 認證考試說明", "🎧 聽力 (Pitengil)", "🗣️ 口說 (Pisowal)", "📖 閱讀 (Piasip)", "✍️ 寫作 (Pitilid)"]
     current_tab = st.segmented_control("主選單導覽", main_options, default=None, label_visibility="collapsed")
@@ -621,7 +621,7 @@ def main():
     if current_tab == "📋 認證考試說明":
         st.subheader("📋 [認證考試說明](https://lokahsu.ilrdf.org.tw/web_lokahsu/Files/Guide/113_3_1.pdf)")
         st.divider()
-        st.info("🌊 歡迎來到海洋風格學習平台！請透過上方導覽列選擇您要進行的測驗項目。系統將優先從 `audio/` 資料夾載入您的真實阿美語錄音，若無音檔則會自動退回使用模擬發音。")
+        st.info("🌊 歡迎來到海洋風格學習平台！請透過上方導覽列選擇您要進行的測驗項目。")
 
     elif current_tab == "🎧 聽力 (Pitengil)":
         st.subheader("🎧 聽力測驗 (Pitengil)")
@@ -662,7 +662,7 @@ def main():
             render_section("問答", db)
 
     st.write("---")
-    st.caption(f"🌊 © 2026 阿美語中高級認證 App ｜ 太平洋海洋風格版 ： **{APP_VERSION}** ")
+    st.caption(f"🌊 © 2026 阿美語中高級認證 App ｜ **{APP_VERSION}** ")
 
 if __name__ == "__main__":
     main()

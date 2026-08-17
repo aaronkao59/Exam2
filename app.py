@@ -619,7 +619,7 @@ def main():
     db = load_question_bank()
 
     if current_tab == "📋 認證考試說明":
-        st.subheader("📋 [認證考試說明](https://lokahsu.ilrdf.org.tw/web_lokahsu/Files/Guide/1_20251211_162558.pdf)")
+        st.subheader("📋 [認證考試說明](https://lokahsu.ilrdf.org.tw/web_lokahsu/Files/Guide/113_3_1.pdf)")
         st.divider()
         st.info("🌊 歡迎來到海洋風格學習平台！請透過上方導覽列選擇您要進行的測驗項目。系統將優先從 `audio/` 資料夾載入您的真實阿美語錄音，若無音檔則會自動退回使用模擬發音。")
 
